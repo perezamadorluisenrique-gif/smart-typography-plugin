@@ -1,0 +1,10 @@
+{
+  "id": "smart-typography",
+  "name": "Smart Typography",
+  "version": "0.1.0",
+  "minAppVersion": "1.3.5",
+  "description": "Converts quotes to curly quotes, dashes to en and em dashes, and periods to an ellipsis as you type. Substitutions keep out of code, math, wikilinks, frontmatter and URLs, and Backspace right afterwards restores exactly what you typed.",
+  "author": "Siulved54",
+  "authorUrl": "https://github.com/perezamadorluisenrique-gif",
+  "isDesktopOnly": false
+}
