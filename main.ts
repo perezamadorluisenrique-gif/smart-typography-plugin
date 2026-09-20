@@ -1,4 +1,5 @@
 import { App, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import type { SettingDefinitionItem } from 'obsidian';
 import { Prec, StateEffect, StateField } from '@codemirror/state';
 import type { Extension } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
@@ -47,7 +48,11 @@ export default class SmartTypographyPlugin extends Plugin {
   }
 
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    // `loadData()` is typed `any`, and whatever is on disk was written by
+    // some earlier version of this plugin, so it is read as `unknown` and
+    // narrowed before it is merged over the defaults.
+    const stored = (await this.loadData()) as Partial<SmartTypographySettings> | null;
+    this.settings = { ...DEFAULT_SETTINGS, ...stored };
   }
 
   async saveSettings() {
@@ -136,25 +141,129 @@ export default class SmartTypographyPlugin extends Plugin {
   }
 }
 
+/** The quote dropdown's options, off first. */
+function quoteStyleOptions(): Record<string, string> {
+  const options: Record<string, string> = { off: 'Leave straight quotes alone' };
+  for (const convention of QUOTE_CONVENTIONS) options[convention.id] = convention.label;
+  return options;
+}
+
+/**
+ * Each setting's name and description, written once. The declarative
+ * definitions below and the `display()` fallback both read from here, so the
+ * two renderings cannot drift apart.
+ */
+const SETTING_TEXT: Record<keyof SmartTypographySettings, { name: string; desc: string }> = {
+  quoteStyle: {
+    name: 'Quotation marks',
+    desc:
+      'Which convention straight quotes are turned into. Apostrophes are ' +
+      'the same character in every convention and are set separately.',
+  },
+  smartApostrophes: {
+    name: 'Apostrophes',
+    desc: "it's becomes it’s. Works whether or not quotation marks are set.",
+  },
+  skipClosingQuote: {
+    name: 'Step over a closing quote',
+    desc:
+      'Typing a closing quote where one already sits moves the cursor past ' +
+      'it instead of adding a second one.',
+  },
+  dashes: { name: 'Dashes', desc: '-- becomes – and --- becomes —.' },
+  ellipsis: { name: 'Ellipsis', desc: '... becomes ….' },
+  arrows: {
+    name: 'Arrows',
+    desc: '-> becomes →, <- becomes ←, <-> becomes ↔, => becomes ⇒.',
+  },
+  mathSymbols: {
+    name: 'Mathematical symbols',
+    desc: '>= becomes ≥, <= becomes ≤, != becomes ≠, +- becomes ±.',
+  },
+};
+
+/** The note under the settings, explaining where the plugin keeps out. */
+const KEEPS_OUT_NOTE = {
+  name: 'Where nothing is substituted',
+  desc:
+    'Code blocks, inline code, formulas, link targets, frontmatter, HTML ' +
+    'comments and Templater expressions are left exactly as typed. ' +
+    'Backspace straight after a substitution puts back what you typed.',
+};
+
+/** The toggles, in the order they are shown. */
+const TOGGLE_KEYS = [
+  'smartApostrophes',
+  'skipClosingQuote',
+  'dashes',
+  'ellipsis',
+  'arrows',
+  'mathSymbols',
+] as const;
+
 class SmartTypographySettingTab extends PluginSettingTab {
   constructor(app: App, private plugin: SmartTypographyPlugin) {
     super(app, plugin);
   }
 
+  /**
+   * The settings, described rather than drawn.
+   *
+   * Obsidian 1.13 and later renders this itself and, the reason for writing
+   * it, indexes it so the settings turn up in the settings search. Older
+   * versions know nothing about this method and fall back to `display()`.
+   */
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    return [
+      {
+        ...SETTING_TEXT.quoteStyle,
+        control: {
+          type: 'dropdown',
+          key: 'quoteStyle',
+          options: quoteStyleOptions(),
+          defaultValue: DEFAULT_SETTINGS.quoteStyle,
+        },
+      },
+      ...TOGGLE_KEYS.map((key) => ({
+        ...SETTING_TEXT[key],
+        control: {
+          type: 'toggle' as const,
+          key,
+          defaultValue: DEFAULT_SETTINGS[key],
+        },
+      })),
+      // No control: a row that is only an explanation, which also puts the
+      // sentence in the settings search.
+      KEEPS_OUT_NOTE,
+    ];
+  }
+
+  /**
+   * Persists a change made through a declarative control.
+   *
+   * The inherited version writes to `plugin.settings` too, but routing it
+   * through `saveSettings()` keeps one path to disk for both renderings.
+   */
+  async setControlValue(key: string, value: unknown): Promise<void> {
+    Object.assign(this.plugin.settings, { [key]: value });
+    await this.plugin.saveSettings();
+  }
+
+  /**
+   * The pre-1.13 rendering. Obsidian skips this entirely once
+   * `getSettingDefinitions()` returns anything, so it is dead code on a
+   * current app and only runs for users below the 1.13 line.
+   */
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
 
     new Setting(containerEl)
-      .setName('Quotation marks')
-      .setDesc(
-        'Which convention straight quotes are turned into. Apostrophes are ' +
-          'the same character in every convention and are set separately.',
-      )
+      .setName(SETTING_TEXT.quoteStyle.name)
+      .setDesc(SETTING_TEXT.quoteStyle.desc)
       .addDropdown((dropdown) => {
-        dropdown.addOption('off', 'Leave straight quotes alone');
-        for (const convention of QUOTE_CONVENTIONS) {
-          dropdown.addOption(convention.id, convention.label);
+        for (const [value, label] of Object.entries(quoteStyleOptions())) {
+          dropdown.addOption(value, label);
         }
         dropdown.setValue(this.plugin.settings.quoteStyle);
         dropdown.onChange(async (value) => {
@@ -163,52 +272,18 @@ class SmartTypographySettingTab extends PluginSettingTab {
         });
       });
 
-    this.addToggle(
-      'Apostrophes',
-      "it's becomes it’s. Works whether or not quotation marks are set.",
-      'smartApostrophes',
-    );
-
-    this.addToggle(
-      'Step over a closing quote',
-      'Typing a closing quote where one already sits moves the cursor past ' +
-        'it instead of adding a second one.',
-      'skipClosingQuote',
-    );
-
-    this.addToggle('Dashes', '-- becomes – and --- becomes —.', 'dashes');
-
-    this.addToggle('Ellipsis', '... becomes ….', 'ellipsis');
-
-    this.addToggle(
-      'Arrows',
-      '-> becomes →, <- becomes ←, <-> becomes ↔, => becomes ⇒.',
-      'arrows',
-    );
-
-    this.addToggle(
-      'Mathematical symbols',
-      '>= becomes ≥, <= becomes ≤, != becomes ≠, +- becomes ±.',
-      'mathSymbols',
-    );
+    for (const key of TOGGLE_KEYS) this.addToggle(key);
 
     containerEl.createEl('p', {
-      text:
-        'Nothing is substituted inside code blocks, inline code, formulas, ' +
-        'link targets, frontmatter, HTML comments or Templater expressions. ' +
-        'Backspace straight after a substitution puts back what you typed.',
+      text: `${KEEPS_OUT_NOTE.name}. ${KEEPS_OUT_NOTE.desc}`,
       cls: 'setting-item-description',
     });
   }
 
-  private addToggle(
-    name: string,
-    description: string,
-    key: 'smartApostrophes' | 'skipClosingQuote' | 'dashes' | 'ellipsis' | 'arrows' | 'mathSymbols',
-  ): void {
+  private addToggle(key: (typeof TOGGLE_KEYS)[number]): void {
     new Setting(this.containerEl)
-      .setName(name)
-      .setDesc(description)
+      .setName(SETTING_TEXT[key].name)
+      .setDesc(SETTING_TEXT[key].desc)
       .addToggle((toggle) => {
         toggle.setValue(this.plugin.settings[key]);
         toggle.onChange(async (value) => {

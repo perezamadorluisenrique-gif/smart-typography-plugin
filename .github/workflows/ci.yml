@@ -21,6 +21,8 @@ jobs:
           cache: npm
 
       - run: npm ci
+      # The same rules Obsidian's plugin review runs.
+      - run: npm run lint
       # The build script runs `tsc -noEmit` before bundling with esbuild.
       - run: npm run build
       - run: npm test
