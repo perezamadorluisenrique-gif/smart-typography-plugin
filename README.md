@@ -1,4 +1,4 @@
-# Smart Typography
+# Typography as You Type
 
 Straight quotes become curly ones, `--` becomes an en dash, `...` becomes an
 ellipsis and `->` becomes an arrow, as you type. Nothing is substituted
@@ -180,11 +180,11 @@ All of those need a throwaway vault and a person at the keyboard.
 ## Installing
 
 Once the plugin is in the community directory: Settings -> Community plugins ->
-Browse, search for Smart Typography, then install and enable it.
+Browse, search for Typography as You Type, then install and enable it.
 
 To install it by hand before then, download `main.js` and `manifest.json` from
 the [latest release][releases] into
-`<your vault>/.obsidian/plugins/smart-typography/` and enable the plugin in
+`<your vault>/.obsidian/plugins/typography-as-you-type/` and enable the plugin in
 Settings -> Community plugins.
 
 [releases]: https://github.com/perezamadorluisenrique-gif/smart-typography-plugin/releases
