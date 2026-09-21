@@ -4,7 +4,7 @@ The release workflow uses the section named after the version being released
 as the release description, so every version needs one. `npm version <x.y.z>`
 renames the `Unreleased` heading below to that version.
 
-## Unreleased
+## 0.1.1
 
 - Settings are now described with Obsidian 1.13's declarative settings API, so
   they turn up when you search the settings window. The settings themselves,
