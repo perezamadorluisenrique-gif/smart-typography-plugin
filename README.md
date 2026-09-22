@@ -1,5 +1,10 @@
 # Typography as You Type
 
+[![Latest release](https://img.shields.io/github/v/release/perezamadorluisenrique-gif/smart-typography-plugin?sort=semver)](https://github.com/perezamadorluisenrique-gif/smart-typography-plugin/releases/latest)
+[![Downloads](https://img.shields.io/badge/dynamic/json?logo=obsidian&color=%23483699&label=downloads&query=%24%5B%22typography-as-you-type%22%5D.downloads&url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidianmd%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json)](https://obsidian.md/plugins?id=typography-as-you-type)
+[![CI](https://github.com/perezamadorluisenrique-gif/smart-typography-plugin/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/perezamadorluisenrique-gif/smart-typography-plugin/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/github/license/perezamadorluisenrique-gif/smart-typography-plugin)](LICENSE)
+
 Straight quotes become curly ones, `--` becomes an en dash, `...` becomes an
 ellipsis and `->` becomes an arrow, as you type. Nothing is substituted
 inside code, formulas or link targets, and Backspace puts back exactly what
@@ -179,10 +184,10 @@ All of those need a throwaway vault and a person at the keyboard.
 
 ## Installing
 
-Once the plugin is in the community directory: Settings -> Community plugins ->
-Browse, search for Typography as You Type, then install and enable it.
+In Obsidian, open Settings -> Community plugins -> Browse, search for
+Typography as You Type, then install and enable it.
 
-To install it by hand before then, download `main.js` and `manifest.json` from
+To install it by hand instead, download `main.js` and `manifest.json` from
 the [latest release][releases] into
 `<your vault>/.obsidian/plugins/typography-as-you-type/` and enable the plugin in
 Settings -> Community plugins.
