@@ -202,6 +202,16 @@ Settings -> Community plugins.
 
 It needs Obsidian 1.3.5 or newer.
 
+## More plugins by Siulved54
+
+| Plugin | What it does | Source |
+| --- | --- | --- |
+| [Shared Blocks](https://obsidian.md/plugins?id=shared-blocks) | Write a block of text once and reuse it in any note. Edit the source and every reference re-renders live. | [shared-blocks](https://github.com/perezamadorluisenrique-gif/shared-blocks) |
+| [Text Case and Cleanup](https://obsidian.md/plugins?id=text-format) | Change the case of a selection without touching code, URLs or task boxes, and repair prose pasted out of a PDF. | [text-format](https://github.com/perezamadorluisenrique-gif/text-format) |
+
+Both are in the community directory: Settings -> Community plugins -> Browse,
+then search for the name.
+
 ## Licence
 
 MIT, (c) Siulved54.
