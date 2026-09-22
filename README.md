@@ -143,21 +143,27 @@ npm test
 npm run build
 ```
 
-## What is not tested
+## What is tested, and where
 
 The 65 tests cover the engine, not the editor. They type through
 `substitutionFor` one character at a time, which is how the chained rules
-get exercised, but they cannot exercise:
+get exercised.
 
-- **composition events**, so the input-method and dead-key fix is reasoned
-  rather than demonstrated;
-- **undo grouping**, which depends on how CodeMirror's history extension
-  treats the transaction;
-- **the interaction with Obsidian's own auto-pairing**, which inserts the
-  closing quote before this plugin sees anything;
-- **other plugins that also handle typing**, Easy Typing among them ([#66]).
+The editor side has been checked inside the Obsidian desktop app (1.13.7,
+Linux), with keystrokes sent through Chromium's input pipeline rather than
+by calling the plugin directly:
 
-All of those need a throwaway vault and a person at the keyboard.
+- with Obsidian's "Auto-pair brackets" on, the default, quotation marks are
+  curled and not doubled (0.1.1 and earlier lost this to auto-pairing);
+- a substitution is one undo step, and Backspace straight afterwards puts
+  back what was typed;
+- input-method composition, sent through Chromium's own composition API,
+  is left alone and does not disturb the substitutions typed after it;
+- the settings tab renders, saves, and applies to open notes at once.
+
+Still not checked: a physical dead-key layout on GNOME, which may reach the
+editor differently from the simulated composition, and other plugins that
+also handle typing, Easy Typing among them ([#66]).
 
 [#66]: https://github.com/mgmeyers/obsidian-smart-typography/issues/66
 
