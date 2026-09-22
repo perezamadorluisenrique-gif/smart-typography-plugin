@@ -179,10 +179,10 @@ All of those need a throwaway vault and a person at the keyboard.
 
 ## Installing
 
-Once the plugin is in the community directory: Settings -> Community plugins ->
-Browse, search for Typography as You Type, then install and enable it.
+From the community directory: Settings -> Community plugins -> Browse, search
+for Typography as You Type, then install and enable it.
 
-To install it by hand before then, download `main.js` and `manifest.json` from
+To install it by hand instead, download `main.js` and `manifest.json` from
 the [latest release][releases] into
 `<your vault>/.obsidian/plugins/typography-as-you-type/` and enable the plugin in
 Settings -> Community plugins.
@@ -190,6 +190,16 @@ Settings -> Community plugins.
 [releases]: https://github.com/perezamadorluisenrique-gif/smart-typography-plugin/releases
 
 It needs Obsidian 1.3.5 or newer.
+
+## More plugins by Siulved54
+
+| Plugin | What it does | Source |
+| --- | --- | --- |
+| [Shared Blocks](https://obsidian.md/plugins?id=shared-blocks) | Write a block of text once and reuse it in any note. Edit the source and every reference re-renders live. | [shared-blocks](https://github.com/perezamadorluisenrique-gif/shared-blocks) |
+| [Text Case and Cleanup](https://obsidian.md/plugins?id=text-format) | Change the case of a selection without touching code, URLs or task boxes, and repair prose pasted out of a PDF. | [text-format](https://github.com/perezamadorluisenrique-gif/text-format) |
+
+Both are in the community directory: Settings -> Community plugins -> Browse,
+then search for the name.
 
 ## Licence
 
