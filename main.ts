@@ -67,7 +67,13 @@ export default class SmartTypographyPlugin extends Plugin {
   private editorExtension(): Extension {
     return [
       lastSubstitution,
-      EditorView.inputHandler.of((view, from, to, text) => this.handleInput(view, from, to, text)),
+      // Highest precedence, or Obsidian's "Auto-pair brackets" (on by
+      // default) claims every `"` and `'` first and inserts a straight
+      // pair, so no quotation mark is ever curled. Where this handler
+      // declines, in code or a link target, auto-pairing still runs.
+      Prec.highest(
+        EditorView.inputHandler.of((view, from, to, text) => this.handleInput(view, from, to, text)),
+      ),
       Prec.highest(
         keymap.of([{ key: 'Backspace', run: (view) => this.handleBackspace(view) }]),
       ),
