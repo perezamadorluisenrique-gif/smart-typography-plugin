@@ -83,6 +83,27 @@ test('an HTML comment is protected', () => {
   assert.equal(at('<!-- note --> and '), null);
 });
 
+test('a Templater block spanning several lines is protected to its end', () => {
+  assert.equal(at('<%*\nconst name = '), 'template');
+  assert.equal(at('<%*\nconst a = 1;\ntR += '), 'template');
+  assert.equal(at('<%*\nconst a = 1;\n%>\nProse '), null);
+  // It closes partway along the cursor's line.
+  assert.equal(at('<%*\nconst a = 1; %> and '), null);
+});
+
+test('an HTML comment spanning several lines is protected to its end', () => {
+  assert.equal(at('<!--\na draft '), 'html-comment');
+  assert.equal(at('<!--\na draft\n-->\nProse '), null);
+});
+
+test('a Templater tag written about in inline code opens nothing', () => {
+  assert.equal(at('Type `<%` to start a tag.\nProse '), null);
+});
+
+test('a Templater tag inside a code block opens nothing', () => {
+  assert.equal(at('```\n<%*\n```\nProse '), null);
+});
+
 test('a bare URL is protected', () => {
   assert.equal(at('see https://example.com/a'), 'url');
   assert.equal(at('see https://example.com/a and '), null);

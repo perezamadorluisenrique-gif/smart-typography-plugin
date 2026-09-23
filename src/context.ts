@@ -40,25 +40,52 @@ const URL_START = /^<?https?:\/\//;
  */
 export function protectedRegionAt(text: string): Region | null {
   const lineStart = text.lastIndexOf('\n') + 1;
-  const blockRegion = blockRegionAt(text, lineStart);
-  if (blockRegion) return blockRegion;
+  const block = blockStateAt(text, lineStart);
+  if (block.region) return block.region;
 
-  return inlineRegionAt(text.slice(lineStart));
+  let line = text.slice(lineStart);
+  // A Templater block or an HTML comment opened on an earlier line: the
+  // cursor is inside it unless it closes earlier on this one.
+  if (block.openSpan !== null) {
+    const end = line.indexOf(block.openSpan);
+    if (end === -1) return block.openSpan === '%>' ? 'template' : 'html-comment';
+    line = line.slice(end + block.openSpan.length);
+  }
+  return inlineRegionAt(line);
+}
+
+/** What closes a span that can run over several lines. */
+type SpanCloser = '%>' | '-->';
+
+interface BlockState {
+  /** Frontmatter, a fenced code block or a `$$` math block, or null. */
+  region: Region | null;
+  /** The closer of a `<% … %>` or `<!-- … -->` still open, or null. */
+  openSpan: SpanCloser | null;
 }
 
 /**
  * Block-level state at the start of the cursor's line: frontmatter, a
- * fenced code block, or a `$$` math block.
+ * fenced code block, or a `$$` math block, and whether a Templater block or
+ * an HTML comment opened further up is still open. A Templater script
+ * (`<%*` on one line, `%>` a dozen lines later) is ordinary JavaScript, and
+ * a quote curled inside it breaks the template.
  */
-function blockRegionAt(text: string, lineStart: number): Region | null {
+function blockStateAt(text: string, lineStart: number): BlockState {
   const lines = text.slice(0, lineStart).split('\n');
 
   let inFrontmatter = lines.length > 0 && lines[0] === '---';
   let fence: string | null = null;
   let inMathBlock = false;
+  let openSpan: SpanCloser | null = null;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+
+    if (openSpan !== null) {
+      openSpan = openSpanAfter(line, openSpan);
+      continue;
+    }
 
     // Frontmatter only counts when it opens on the very first line, and it
     // ends at the next `---` on its own.
@@ -84,13 +111,53 @@ function blockRegionAt(text: string, lineStart: number): Region | null {
     }
     if (fence !== null) continue;
 
-    if (line.trim() === '$$') inMathBlock = !inMathBlock;
+    if (line.trim() === '$$') {
+      inMathBlock = !inMathBlock;
+      continue;
+    }
+    if (!inMathBlock) openSpan = openSpanAfter(line, null);
   }
 
-  if (inFrontmatter) return 'frontmatter';
-  if (fence !== null) return 'code-block';
-  if (inMathBlock) return 'math-block';
-  return null;
+  let region: Region | null = null;
+  if (inFrontmatter) region = 'frontmatter';
+  else if (fence !== null) region = 'code-block';
+  else if (inMathBlock) region = 'math-block';
+  return { region, openSpan };
+}
+
+/**
+ * Which multi-line span is still open at the end of a whole line, given the
+ * one open at its start. Inline code is stepped over, so a note that writes
+ * about `<%` in backticks does not switch substitution off below it.
+ */
+function openSpanAfter(line: string, open: SpanCloser | null): SpanCloser | null {
+  let i = 0;
+  while (i < line.length) {
+    if (open !== null) {
+      const end = line.indexOf(open, i);
+      if (end === -1) return open;
+      i = end + open.length;
+      open = null;
+      continue;
+    }
+    if (line[i] === '`') {
+      const run = runLength(line, i, '`');
+      i = endOf(line, i + run, '`'.repeat(run)) ?? i + run;
+      continue;
+    }
+    if (line.startsWith('<!--', i)) {
+      open = '-->';
+      i += 4;
+      continue;
+    }
+    if (line.startsWith('<%', i)) {
+      open = '%>';
+      i += 2;
+      continue;
+    }
+    i++;
+  }
+  return open;
 }
 
 /**

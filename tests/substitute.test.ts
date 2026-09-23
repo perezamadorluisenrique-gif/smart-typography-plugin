@@ -189,6 +189,29 @@ test('two hyphens become an en dash and three an em dash', () => {
   assert.equal(type('a---b'), 'a—b');
 });
 
+test('a horizontal rule in a quote or callout is left alone', () => {
+  assert.equal(type('---', { start: '> ' }), '> ---');
+  assert.equal(type('---', { start: '> [!note]\n> ' }), '> [!note]\n> ---');
+});
+
+test('the delimiter row of a table is left alone', () => {
+  // One dash in it and the table stops rendering.
+  const header = '| Name | Age |\n';
+  assert.equal(type('| --- | :--: |', { start: header }), header + '| --- | :--: |');
+  assert.equal(type('--- | ---', { start: 'Name | Age\n' }), 'Name | Age\n--- | ---');
+  // Dashes in a table's cells are still prose.
+  assert.equal(type('| a -- b |'), '| a – b |');
+});
+
+test('the opener of an HTML comment is left alone', () => {
+  assert.equal(type('<!-- note -->'), '<!-- note -->');
+});
+
+test('a quote inside a Templater script is left straight', () => {
+  const script = '<%*\nconst title = "x";\n%>\nShe said "hi"';
+  assert.equal(type(script), '<%*\nconst title = "x";\n%>\nShe said “hi”');
+});
+
 test('a horizontal rule is left alone', () => {
   // `---` on its own line is a horizontal rule, a setext underline and the
   // frontmatter fence. None of them is an em dash.
