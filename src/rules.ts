@@ -25,14 +25,27 @@ export interface Rule {
   group: RuleGroup;
   /**
    * An extra condition on the current line up to the cursor. Used to keep
-   * the dash rules away from `---`, which is a horizontal rule, a setext
-   * underline and the frontmatter fence.
+   * the dash rules away from hyphens that are Markdown syntax rather than
+   * punctuation.
    */
   guard?: (lineBefore: string) => boolean;
 }
 
-/** True unless the line so far is nothing but hyphens. */
-const notAHorizontalRule = (lineBefore: string): boolean => !/^\s*-*$/.test(lineBefore);
+/**
+ * False while the hyphens being typed are syntax:
+ *
+ * - `---` on a line of its own, which is a horizontal rule, a setext
+ *   underline and the frontmatter fence, in a quote or callout as well;
+ * - a table's delimiter row, `| --- | :-: |`, which stops being one the
+ *   moment a hyphen in it becomes a dash, so the table no longer renders;
+ * - the `<!--` that opens an HTML comment.
+ */
+const hyphensAreProse = (lineBefore: string): boolean => {
+  const body = lineBefore.replace(/^\s*(?:>\s*)*/, '');
+  if (/^-*$/.test(body)) return false;
+  if (body.includes('|') && /^[\s|:-]*$/.test(body)) return false;
+  return !lineBefore.endsWith('<!-');
+};
 
 /**
  * Longest `before` first inside each group, and `math` ahead of `arrows`
@@ -51,7 +64,7 @@ export const RULES: Rule[] = [
     insert: '—',
     literal: '---',
     group: 'dashes',
-    guard: notAHorizontalRule,
+    guard: hyphensAreProse,
   },
   {
     before: '-',
@@ -59,7 +72,7 @@ export const RULES: Rule[] = [
     insert: '–',
     literal: '--',
     group: 'dashes',
-    guard: notAHorizontalRule,
+    guard: hyphensAreProse,
   },
 
   // >= != /= +- +/-

@@ -84,12 +84,16 @@ original's bug reports come from. Nothing is substituted inside:
   space is read as money and not as an unclosed formula;
 - `[[wikilink]]` targets and the `(target)` of a markdown link ([#62]);
 - YAML frontmatter;
-- `<% ... %>` Templater expressions ([#39]);
-- `<!-- HTML comments -->`, where `--` is usually on its way to `-->`;
+- `<% ... %>` Templater expressions and `<%* ... %>` scripts, including
+  ones that run over many lines ([#39]);
+- `<!-- HTML comments -->`, on one line or several, where `--` is usually on
+  its way to `-->`;
 - bare URLs.
 
-`---` alone on a line is left alone too: it is a horizontal rule, a setext
-underline and the frontmatter fence, and none of those is an em dash.
+`---` alone on a line is left alone too, in a quote or callout as well: it is
+a horizontal rule, a setext underline and the frontmatter fence, and none of
+those is an em dash. So is the delimiter row of a table, `| --- | :-: |`,
+which would stop being one with a dash in it.
 
 [#39]: https://github.com/mgmeyers/obsidian-smart-typography/issues/39
 [#46]: https://github.com/mgmeyers/obsidian-smart-typography/issues/46
