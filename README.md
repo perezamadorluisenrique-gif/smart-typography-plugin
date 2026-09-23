@@ -10,6 +10,8 @@ ellipsis and `->` becomes an arrow, as you type. Nothing is substituted
 inside code, formulas or link targets, and Backspace puts back exactly what
 you typed.
 
+![Typing in Obsidian: quotes curl, dashes, ellipses, arrows and symbols are substituted, inline code is left alone, and Backspace turns an em dash back into three hyphens](https://raw.githubusercontent.com/perezamadorluisenrique-gif/smart-typography-plugin/main/docs/typing.gif)
+
 This is a rebuild rather than a fork. The plugin it replaces,
 [mgmeyers/obsidian-smart-typography][original], has about 170,000 downloads
 and has had no release since June 2022. Its open issues are the
@@ -39,6 +41,8 @@ answers.
 | `+-` `+/-` | `±` | Mathematical symbols |
 
 Each group has its own switch in settings.
+
+![The settings tab: a quotation mark convention dropdown and one switch per group](https://raw.githubusercontent.com/perezamadorluisenrique-gif/smart-typography-plugin/main/docs/settings.png)
 
 `<=` is the one real collision: it is both "less than or equal" and a
 leftwards double arrow. With mathematical symbols on it gives `≤`, and
