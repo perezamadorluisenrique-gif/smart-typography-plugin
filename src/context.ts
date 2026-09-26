@@ -21,10 +21,18 @@ export type Region =
   | 'link-target'
   | 'template'
   | 'html-comment'
+  | 'html-tag'
   | 'url';
 
 /** A fenced block, ``` or ~~~, possibly indented by up to three spaces. */
 const FENCE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
+
+/**
+ * The start of an HTML tag, `<span` or `</div`: a `<`, an optional `/`, and
+ * a tag name ending where the attributes or the `>` begin. A `<` before
+ * anything else, as in `<=` or `a < b`, is prose.
+ */
+const TAG_START = /^<\/?[A-Za-z][A-Za-z0-9-]*(?=[\s/>]|$)/;
 
 /** A bare URL, up to the first whitespace. */
 const URL_START = /^<?https?:\/\//;
@@ -182,6 +190,15 @@ function inlineRegionAt(line: string): Region | null {
     if (line.startsWith('<%', i)) {
       const end = endOf(line, i + 2, '%>');
       if (end === null) return 'template';
+      i = end;
+      continue;
+    }
+
+    // Inside a tag, up to its `>`, quotes delimit attribute values:
+    // `<span style="color: red">` stops working once they are curled.
+    if (TAG_START.test(line.slice(i))) {
+      const end = endOf(line, i + 1, '>');
+      if (end === null) return 'html-tag';
       i = end;
       continue;
     }

@@ -326,3 +326,12 @@ test('a price does not switch substitution off for the rest of the line', () => 
 test('nothing is substituted inside a formula', () => {
   assert.equal(type('a<=b$', { start: 'the bound $' }), 'the bound $a<=b$');
 });
+
+test('quotes inside an HTML tag stay straight, and the text around it is curled', () => {
+  assert.equal(
+    type('<span style="color: red">it\'s "hi"</span>'),
+    '<span style="color: red">it’s “hi”</span>',
+  );
+  assert.equal(type('<img src="a.png" width="300">'), '<img src="a.png" width="300">');
+  assert.equal(type('<font color=\'red\'>x</font>'), '<font color=\'red\'>x</font>');
+});

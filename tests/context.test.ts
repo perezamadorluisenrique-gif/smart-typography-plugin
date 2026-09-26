@@ -126,3 +126,17 @@ test('a price is not read as an unclosed formula', () => {
 test('protection is per line, so an unclosed span ends at the newline', () => {
   assert.equal(at('a `code\nnext line '), null);
 });
+
+test('an HTML tag is protected up to its closing bracket', () => {
+  assert.equal(at('<span style='), 'html-tag');
+  assert.equal(at('<img src="a.png" width='), 'html-tag');
+  assert.equal(at('</div'), 'html-tag');
+  assert.equal(at('<span style="color: red">and '), null);
+  assert.equal(at('a <b>bold</b> and '), null);
+});
+
+test('a less-than sign that opens no tag is prose', () => {
+  assert.equal(at('a < b and '), null);
+  assert.equal(at('x <= 3 and '), null);
+  assert.equal(at('<3 you '), null);
+});
