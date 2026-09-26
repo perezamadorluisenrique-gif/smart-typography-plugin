@@ -92,6 +92,8 @@ original's bug reports come from. Nothing is substituted inside:
   ones that run over many lines ([#39]);
 - `<!-- HTML comments -->`, on one line or several, where `--` is usually on
   its way to `-->`;
+- HTML tags such as `<span style="color: red">` or `<img src="a.png"
+  width="300">`, up to their `>`, where a curled quote breaks the attribute;
 - bare URLs.
 
 `---` alone on a line is left alone too, in a quote or callout as well: it is

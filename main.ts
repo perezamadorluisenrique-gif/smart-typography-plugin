@@ -282,7 +282,7 @@ const KEEPS_OUT_NOTE = {
   name: 'Where nothing is substituted',
   desc:
     'Code blocks, inline code, formulas, link targets, frontmatter, HTML ' +
-    'comments and Templater expressions are left exactly as typed. ' +
+    'tags and comments, and Templater expressions are left exactly as typed. ' +
     'Backspace straight after a substitution puts back what you typed.',
 };
 

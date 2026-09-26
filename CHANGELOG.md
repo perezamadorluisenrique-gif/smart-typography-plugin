@@ -4,6 +4,13 @@ The release workflow uses the section named after the version being released
 as the release description, so every version needs one. `npm version <x.y.z>`
 renames the `Unreleased` heading below to that version.
 
+## 0.1.5
+
+- Quotes typed inside an HTML tag stay straight. `<span style="color: red">`
+  used to become `<span style=”color: red”>`, which Obsidian no longer reads
+  as a style, so the colour, size or link was lost. Text between the tags is
+  still curled as before.
+
 ## 0.1.4
 
 - Quotes and apostrophes typed on Android now curl. Keyboards such as Gboard
