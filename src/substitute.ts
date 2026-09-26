@@ -7,7 +7,7 @@
  */
 
 import { protectedRegionAt } from './context.ts';
-import { matchRule } from './rules.ts';
+import { RULES, matchRule } from './rules.ts';
 import type { RuleGroup } from './rules.ts';
 import { APOSTROPHE, conventionFor } from './settings.ts';
 import type { QuoteConvention, SmartTypographySettings } from './settings.ts';
@@ -56,9 +56,34 @@ export function substitutionFor(
   typed: string,
   settings: SmartTypographySettings,
 ): Action | null {
-  if (typed.length !== 1) return null;
-  if (protectedRegionAt(before) !== null) return null;
+  if (!mightSubstitute(typed)) return null;
 
+  const action = candidateFor(before, after, typed, settings);
+  // The protected-region scan reads the whole note up to the cursor, so it
+  // runs only once a rule has matched. Letters and spaces, nearly every
+  // keystroke, never pay for it; on a phone with a long note that scan is
+  // the difference between typing and lag.
+  if (action === null || protectedRegionAt(before) !== null) return null;
+  return action;
+}
+
+/** Every character some rule reacts to. */
+const TRIGGERS = new Set(['"', "'", ...'0123456789', ...RULES.map((rule) => rule.typed)]);
+
+/**
+ * Whether `typed` could start a substitution at all. Anything else, which is
+ * nearly every keystroke, is let through without looking at the document.
+ */
+export function mightSubstitute(typed: string): boolean {
+  return typed.length === 1 && TRIGGERS.has(typed);
+}
+
+function candidateFor(
+  before: string,
+  after: string,
+  typed: string,
+  settings: SmartTypographySettings,
+): Action | null {
   const pos = before.length;
   const convention = conventionFor(settings.quoteStyle);
 

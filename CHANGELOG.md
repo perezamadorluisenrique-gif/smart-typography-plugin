@@ -4,6 +4,18 @@ The release workflow uses the section named after the version being released
 as the release description, so every version needs one. `npm version <x.y.z>`
 renames the `Unreleased` heading below to that version.
 
+## 0.1.4
+
+- Quotes and apostrophes typed on Android now curl. Keyboards such as Gboard
+  compose each word as you type it, apostrophe included, and nothing typed
+  inside a composition was ever substituted, so `it's` stayed straight. The
+  quotes a composition leaves behind are now curled as soon as it ends,
+  which also fixes quotes typed with a dead key on a computer.
+- Typing is lighter on long notes. Letters and spaces, nearly every
+  keystroke, no longer make the plugin read the note up to the cursor;
+  only the characters a rule reacts to do.
+- The README explains how the plugin and iOS Smart Punctuation get along.
+
 ## 0.1.3
 
 - The delimiter row of a table, `| --- | :-: |`, is no longer turned into

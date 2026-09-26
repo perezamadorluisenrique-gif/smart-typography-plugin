@@ -1,6 +1,6 @@
 {
   "name": "typography-as-you-type",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Smart typography plugin for Obsidian - curly quotes, dashes, ellipses and arrows as you type, without touching code.",
   "main": "main.js",
   "scripts": {
