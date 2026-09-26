@@ -2,11 +2,13 @@ import { App, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import type { SettingDefinitionItem } from 'obsidian';
 import { Prec, StateEffect, StateField } from '@codemirror/state';
 import type { Extension } from '@codemirror/state';
-import { EditorView, keymap } from '@codemirror/view';
+import { EditorView, ViewPlugin, keymap } from '@codemirror/view';
+import type { ViewUpdate } from '@codemirror/view';
 
+import { curlComposedQuotes } from './src/compose.ts';
 import { revertFor } from './src/revert.ts';
 import type { LastSubstitution } from './src/revert.ts';
-import { substitutionFor } from './src/substitute.ts';
+import { mightSubstitute, substitutionFor } from './src/substitute.ts';
 import { DEFAULT_SETTINGS, QUOTE_CONVENTIONS } from './src/settings.ts';
 import type { QuoteStyleId, SmartTypographySettings } from './src/settings.ts';
 
@@ -16,6 +18,13 @@ import type { QuoteStyleId, SmartTypographySettings } from './src/settings.ts';
  * than a padding character and a quote.
  */
 const LOOKAHEAD = 4;
+
+/**
+ * How often a finished composition is looked for when nothing else happens
+ * in the editor. Some Android keyboards end a composition without a change
+ * the editor would report.
+ */
+const COMPOSITION_POLL = 400;
 
 /** Carries the record of a substitution into the state field below. */
 const rememberSubstitution = StateEffect.define<LastSubstitution>();
@@ -77,7 +86,83 @@ export default class SmartTypographyPlugin extends Plugin {
       Prec.highest(
         keymap.of([{ key: 'Backspace', run: (view) => this.handleBackspace(view) }]),
       ),
+      this.composedQuotes(),
     ];
+  }
+
+  /**
+   * Curls the quotes in text that an input method composed, once the
+   * composition is over. `src/compose.ts` says why it cannot happen as the
+   * quote is typed.
+   */
+  private composedQuotes(): Extension {
+    const settings = () => this.settings;
+
+    return ViewPlugin.fromClass(
+      class {
+        /** Where the text composed since the last check is, or null. */
+        private range: { from: number; to: number } | null = null;
+        private timer: number | null = null;
+
+        constructor(private readonly view: EditorView) {}
+
+        update(update: ViewUpdate): void {
+          for (const tr of update.transactions) {
+            if (this.range && tr.docChanged) {
+              this.range = {
+                from: tr.changes.mapPos(this.range.from, -1),
+                to: tr.changes.mapPos(this.range.to, 1),
+              };
+            }
+            if (!tr.isUserEvent('input.type.compose')) continue;
+            tr.changes.iterChangedRanges((_fromA, _toA, fromB, toB) => {
+              this.range = this.range
+                ? { from: Math.min(this.range.from, fromB), to: Math.max(this.range.to, toB) }
+                : { from: fromB, to: toB };
+            });
+          }
+          if (this.range) this.schedule(0);
+        }
+
+        destroy(): void {
+          if (this.timer !== null) window.clearTimeout(this.timer);
+        }
+
+        private schedule(delay: number): void {
+          if (this.timer !== null) window.clearTimeout(this.timer);
+          // Never from inside `update`: the editor refuses a dispatch while
+          // it is still applying one.
+          this.timer = window.setTimeout(() => this.check(), delay);
+        }
+
+        private check(): void {
+          this.timer = null;
+          const { view } = this;
+          if (!this.range) return;
+          if (view.compositionStarted) {
+            this.schedule(COMPOSITION_POLL);
+            return;
+          }
+
+          const { state } = view;
+          const from = Math.max(0, this.range.from);
+          const to = Math.min(state.doc.length, this.range.to);
+          this.range = null;
+          if (state.readOnly || from >= to) return;
+
+          const composed = state.doc.sliceString(from, to);
+          if (!composed.includes('"') && !composed.includes("'")) return;
+
+          const changes = curlComposedQuotes(
+            state.doc.sliceString(0, Math.min(state.doc.length, to + LOOKAHEAD)),
+            from,
+            to,
+            settings(),
+          );
+          if (changes.length > 0) view.dispatch({ changes, userEvent: 'input.type' });
+        }
+      },
+    );
   }
 
   private handleInput(view: EditorView, from: number, to: number, text: string): boolean {
@@ -91,6 +176,10 @@ export default class SmartTypographyPlugin extends Plugin {
     // Only a plain single character typed at a collapsed cursor. A
     // replacement of selected text has no keystroke history to work from.
     if (from !== to || text.length !== 1) return false;
+
+    // Nearly every keystroke is a letter or a space, which no rule reacts
+    // to. Those leave before the note is copied for the engine below.
+    if (!mightSubstitute(text)) return false;
 
     // The engine is given the document up to the cursor because the
     // protected-region scan has to know whether a code fence is open

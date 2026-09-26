@@ -120,15 +120,26 @@ rewrites text somewhere else in the note ([#58]).
 
 [#58]: https://github.com/mgmeyers/obsidian-smart-typography/issues/58
 
-## Input methods and dead keys
+## Input methods, dead keys and phones
 
 Nothing is substituted while an input method or a dead key is composing.
 The characters that arrive mid-composition are half-finished and the
-browser revises them afterwards, and rewriting them is what produces the
+keyboard revises them afterwards, and rewriting them is what produces the
 doubled quotes reported on GNOME ([#44], [#63]).
 
-This is the part that cannot be verified outside a real vault. See
-"What is not tested" below.
+Once the composition is over, the quotes it produced are curled, each one
+where it stands. This matters most on Android, where keyboards such as
+Gboard compose every word as you type it, apostrophe included: without
+this step `it's` would never become `it’s` there. Only quotes get this
+treatment: a keyboard that composes `--` or `...` as part of a word leaves
+them as typed.
+
+On iPhone and iPad, iOS has its own **Smart Punctuation** (Settings →
+General → Keyboard), on by default, which curls quotes and turns `--` into
+an em dash before the plugin sees them. The two work side by side, but iOS
+always uses English quotation marks and its own dash rule. For the
+convention you picked here, the `--` en dash and Backspace putting back
+what you typed, turn Smart Punctuation off.
 
 [#44]: https://github.com/mgmeyers/obsidian-smart-typography/issues/44
 [#63]: https://github.com/mgmeyers/obsidian-smart-typography/issues/63
@@ -140,7 +151,8 @@ This is the part that cannot be verified outside a real vault. See
   the last substitution, and the settings tab.
 - `src/` is pure logic with no imports from either: `context.ts` decides
   what is protected, `rules.ts` is the table of character substitutions,
-  `substitute.ts` turns a keystroke into an editor change, `revert.ts`
+  `substitute.ts` turns a keystroke into an editor change, `compose.ts`
+  curls the quotes a composition left behind, `revert.ts`
   decides whether Backspace should put something back, and `settings.ts`
   holds the conventions.
 - `tests/` runs under `node --test` with no test framework and no browser.
@@ -153,7 +165,7 @@ npm run build
 
 ## What is tested, and where
 
-The 65 tests cover the engine, not the editor. They type through
+The 83 tests cover the engine, not the editor. They type through
 `substitutionFor` one character at a time, which is how the chained rules
 get exercised.
 
@@ -166,12 +178,14 @@ by calling the plugin directly:
 - a substitution is one undo step, and Backspace straight afterwards puts
   back what was typed;
 - input-method composition, sent through Chromium's own composition API,
-  is left alone and does not disturb the substitutions typed after it;
+  is left alone while it lasts, and its quotes are curled once it is
+  committed (`it's` composed as one word, a dead-key `"`);
 - the settings tab renders, saves, and applies to open notes at once.
 
-Still not checked: a physical dead-key layout on GNOME, which may reach the
-editor differently from the simulated composition, and other plugins that
-also handle typing, Easy Typing among them ([#66]).
+Still not checked: a physical dead-key layout on GNOME and a real Android
+or iOS keyboard, which may reach the editor differently from the simulated
+composition, and other plugins that also handle typing, Easy Typing among
+them ([#66]).
 
 [#66]: https://github.com/mgmeyers/obsidian-smart-typography/issues/66
 
