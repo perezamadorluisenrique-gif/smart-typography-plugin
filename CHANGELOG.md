@@ -4,7 +4,7 @@ The release workflow uses the section named after the version being released
 as the release description, so every version needs one. `npm version <x.y.z>`
 renames the `Unreleased` heading below to that version.
 
-## Unreleased
+## 0.2.0
 
 - **Excluded folders**: a new setting, one folder per line. Nothing is
   substituted in notes inside them (mgmeyers/obsidian-smart-typography#41).
