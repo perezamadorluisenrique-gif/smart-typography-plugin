@@ -6,6 +6,8 @@ import { EditorView, ViewPlugin, keymap } from '@codemirror/view';
 import type { EditorState } from '@codemirror/state';
 import type { ViewUpdate } from '@codemirror/view';
 
+import { changesBetween, typographize } from './src/apply.ts';
+import type { TextChange } from './src/apply.ts';
 import { curlComposedQuotes } from './src/compose.ts';
 import { revertFor } from './src/revert.ts';
 import { NOTE_PROPERTY, folderList, inFolder, isOff, noteIsOff, setNoteOff } from './src/scope.ts';
@@ -88,6 +90,37 @@ export default class SmartTypographyPlugin extends Plugin {
               ? 'Typography: removed the property, but this note is in an excluded folder, so substitutions stay off.'
               : 'Typography: substitutions are on in this note.',
         );
+      },
+    });
+
+    this.addCommand({
+      id: 'apply-to-text',
+      name: 'Apply typography to the selection or the whole note',
+      icon: 'wand-sparkles',
+      editorCallback: (editor) => {
+        const text = editor.getValue();
+        const ranges = editor.somethingSelected()
+          ? editor.listSelections().map((s) => {
+              const a = editor.posToOffset(s.anchor);
+              const b = editor.posToOffset(s.head);
+              return [Math.min(a, b), Math.max(a, b)];
+            })
+          : [[0, text.length]];
+        const changes: TextChange[] = [];
+        for (const [from, to] of ranges) {
+          const original = text.slice(from, to);
+          const result = typographize(original, this.settings, text.slice(0, from));
+          changes.push(...changesBetween(original, result, from));
+        }
+        if (changes.length === 0) {
+          new Notice('Typography: nothing to change.');
+          return;
+        }
+        // One transaction, so a single undo puts everything back.
+        editor.transaction({
+          changes: changes.map((c) => ({ from: editor.offsetToPos(c.from), to: editor.offsetToPos(c.to), text: c.insert })),
+        });
+        new Notice(`Typography: changed ${changes.length} ${changes.length === 1 ? 'line' : 'lines'}.`);
       },
     });
   }
