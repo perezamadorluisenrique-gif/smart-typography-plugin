@@ -4,6 +4,16 @@ The release workflow uses the section named after the version being released
 as the release description, so every version needs one. `npm version <x.y.z>`
 renames the `Unreleased` heading below to that version.
 
+## Unreleased
+
+- **Apply typography to text that is already there.** The new command *Apply
+  typography to the selection or the whole note* converts pasted text, or a
+  note written before the plugin was installed, exactly as if it had been
+  typed: code, maths, links, front matter and HTML tags are left alone, and
+  one undo reverts it.
+- A quotation mark right after an HTML tag now opens: `<b>"` gives `<b>“`,
+  not `<b>”`.
+
 ## 0.2.0
 
 - **Excluded folders**: a new setting, one folder per line. Nothing is

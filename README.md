@@ -105,6 +105,20 @@ which would stop being one with a dash in it.
 [#46]: https://github.com/mgmeyers/obsidian-smart-typography/issues/46
 [#62]: https://github.com/mgmeyers/obsidian-smart-typography/issues/62
 
+## Text that is already there
+
+Substitutions happen as you type, so a paragraph pasted from elsewhere, or a
+note written before you installed the plugin, keeps its straight quotes and
+double hyphens. The command **Apply typography to the selection or the whole
+note** fixes that: it works on the selection, or on the whole note when nothing
+is selected.
+
+It feeds the text through the same rules as typing, one character at a time,
+so the result is exactly what you would have got by typing it: code, maths,
+links, front matter and HTML tags are left alone, your quotation style and the
+groups you switched off are respected, and text that is already typeset is not
+touched again. The change is one step in the undo history.
+
 ## Turning it off for a folder or a note
 
 - **Excluded folders** in the settings takes one folder per line. Nothing is
@@ -114,7 +128,8 @@ which would stop being one with a dash in it.
   *Turn substitutions off or on in this note* adds or removes it for you.
 
 Everything else about the note (its quotes, dashes and ellipses already in
-place) is left as it is; only new typing stops being converted.
+place) is left as it is; only new typing stops being converted. The *Apply
+typography* command still works there when you run it on purpose.
 
 ## Undo, and taking a substitution back
 

@@ -32,12 +32,13 @@ export type Action =
  *
  * The start of the document counts as an opening position too, which is
  * the first-line guillemet bug in the original
- * (mgmeyers/obsidian-smart-typography#65).
+ * (mgmeyers/obsidian-smart-typography#65). So does the `>` that ends an
+ * HTML tag: `<b>"` opens a quotation.
  */
 // U+00A0 is written as an escape rather than typed: a literal no-break
 // space is invisible in a diff. `\s` already covers it; it is kept here
 // so the intent survives a change to the shorthand.
-const OPENS_AFTER = /[\s\u00A0([{<*_~\-–—…"'“„«‹‘‚]/;
+const OPENS_AFTER = /[\s\u00A0([{<>*_~\-–—…"'“„«‹‘‚]/;
 
 /** A letter or a digit, in any script. */
 const WORD_CHARACTER = /[\p{L}\p{N}]/u;
