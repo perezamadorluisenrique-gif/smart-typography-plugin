@@ -4,6 +4,10 @@ The release workflow uses the section named after the version being released
 as the release description, so every version needs one. `npm version <x.y.z>`
 renames the `Unreleased` heading below to that version.
 
+## 0.3.1
+
+- Passes the directory review's API-version check: the per-note on/off command still uses processFrontMatter on Obsidian 1.4.4 and later and falls back to a text edit on older versions.
+
 ## 0.3.0
 
 - **Apply typography to text that is already there.** The new command *Apply

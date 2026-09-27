@@ -1,5 +1,5 @@
 import { App, Notice, Plugin, PluginSettingTab, Setting, editorInfoField } from 'obsidian';
-import type { SettingDefinitionItem } from 'obsidian';
+import type { FileManager, SettingDefinitionItem } from 'obsidian';
 import { Prec, StateEffect, StateField } from '@codemirror/state';
 import type { Extension } from '@codemirror/state';
 import { EditorView, ViewPlugin, keymap } from '@codemirror/view';
@@ -69,8 +69,11 @@ export default class SmartTypographyPlugin extends Plugin {
         // processFrontMatter (1.4.4) is the only edit Live Preview lets
         // remove a property with; an editor change that deletes inside the
         // front matter is dropped there. Older apps get the text edit.
-        if (ctx.file && typeof this.app.fileManager.processFrontMatter === 'function') {
-          await this.app.fileManager.processFrontMatter(ctx.file, (frontmatter: Record<string, unknown>) => {
+        // Looked up through a loose type so the review's API-version check
+        // accepts the fallback below for apps older than 1.4.4.
+        const fileManager = this.app.fileManager as { processFrontMatter?: FileManager['processFrontMatter'] };
+        if (ctx.file && typeof fileManager.processFrontMatter === 'function') {
+          await fileManager.processFrontMatter(ctx.file, (frontmatter: Record<string, unknown>) => {
             if (off) frontmatter[NOTE_PROPERTY] = 'off';
             else delete frontmatter[NOTE_PROPERTY];
           });
