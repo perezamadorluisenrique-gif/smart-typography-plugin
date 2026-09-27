@@ -105,6 +105,17 @@ which would stop being one with a dash in it.
 [#46]: https://github.com/mgmeyers/obsidian-smart-typography/issues/46
 [#62]: https://github.com/mgmeyers/obsidian-smart-typography/issues/62
 
+## Turning it off for a folder or a note
+
+- **Excluded folders** in the settings takes one folder per line. Nothing is
+  substituted in any note inside them, at any depth: a folder of code
+  snippets, raw imports, or templates that must stay plain ([#41]).
+- **One note** opts out with the property `typography: off`. The command
+  *Turn substitutions off or on in this note* adds or removes it for you.
+
+Everything else about the note (its quotes, dashes and ellipses already in
+place) is left as it is; only new typing stops being converted.
+
 ## Undo, and taking a substitution back
 
 Each substitution is one editor transaction covering both the character you
@@ -196,9 +207,6 @@ them ([#66]).
 - **Reading-view-only substitution** ([#40], [#67]). That is a different
   plugin: it would render substitutions without changing the note, and
   mixing the two in one settings tab makes both confusing.
-- **Restricting substitution to particular folders** ([#41]). Worth doing,
-  but it needs the editor to know which file it is showing, which the
-  current extension does not.
 - **Superscripts and subscripts** ([#69]), and **unit symbols** ([#73]).
   Both are substitutions of a different kind, and `^2` is live markdown in
   too many vaults to convert by default.
@@ -231,10 +239,13 @@ It needs Obsidian 1.3.5 or newer.
 | Plugin | What it does | Source |
 | --- | --- | --- |
 | [Shared Blocks](https://obsidian.md/plugins?id=shared-blocks) | Write a block of text once and reuse it in any note. Edit the source and every reference re-renders live. | [shared-blocks](https://github.com/perezamadorluisenrique-gif/shared-blocks) |
-| [Text Case and Cleanup](https://obsidian.md/plugins?id=text-format) | Change the case of a selection without touching code, URLs or task boxes, and repair prose pasted out of a PDF. | [text-format](https://github.com/perezamadorluisenrique-gif/text-format) |
+| [Text Case and Cleanup](https://obsidian.md/plugins?id=text-format) | Change case, make camelCase or slugs, sort lines and remove duplicates, and repair text pasted out of a PDF, without touching code or URLs. | [text-format](https://github.com/perezamadorluisenrique-gif/text-format) |
+| [Section Numbering](https://obsidian.md/plugins?id=section-numbering) | Number headings as an outline (1, 1.1, 1.2) and keep every link to them working when they renumber. | [section-numbering](https://github.com/perezamadorluisenrique-gif/section-numbering) |
+| [Spreadsheet to Table](https://obsidian.md/plugins?id=spreadsheet-to-table) | Paste cells from Excel or Google Sheets as a Markdown table with a real header, insert CSV files, and copy tables back out. | [spreadsheet-to-table](https://github.com/perezamadorluisenrique-gif/spreadsheet-to-table) |
+| [Hybrid Line Numbers](https://obsidian.md/plugins?id=hybrid-line-numbers) | Relative and hybrid line numbers for Vim-style jumps, where a folded section counts as one line. | [hybrid-line-numbers](https://github.com/perezamadorluisenrique-gif/hybrid-line-numbers) |
 
-Both are in the community directory: Settings -> Community plugins -> Browse,
-then search for the name.
+All of them are in the community directory: Settings -> Community plugins ->
+Browse, then search for the name.
 
 ## Licence
 

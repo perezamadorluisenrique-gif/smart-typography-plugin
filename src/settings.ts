@@ -124,6 +124,8 @@ export interface SmartTypographySettings {
   mathSymbols: boolean;
   /** Typing a closing quote over one that is already there moves past it. */
   skipClosingQuote: boolean;
+  /** Folders where nothing is substituted, one vault path per line. */
+  excludedFolders: string;
 }
 
 export const DEFAULT_SETTINGS: SmartTypographySettings = {
@@ -134,6 +136,7 @@ export const DEFAULT_SETTINGS: SmartTypographySettings = {
   arrows: true,
   mathSymbols: true,
   skipClosingQuote: true,
+  excludedFolders: '',
 };
 
 /** The convention in use, or null when quote substitution is switched off. */
