@@ -1,12 +1,14 @@
-import { App, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Notice, Plugin, PluginSettingTab, Setting, editorInfoField } from 'obsidian';
 import type { SettingDefinitionItem } from 'obsidian';
 import { Prec, StateEffect, StateField } from '@codemirror/state';
 import type { Extension } from '@codemirror/state';
 import { EditorView, ViewPlugin, keymap } from '@codemirror/view';
+import type { EditorState } from '@codemirror/state';
 import type { ViewUpdate } from '@codemirror/view';
 
 import { curlComposedQuotes } from './src/compose.ts';
 import { revertFor } from './src/revert.ts';
+import { NOTE_PROPERTY, folderList, inFolder, isOff, noteIsOff, setNoteOff } from './src/scope.ts';
 import type { LastSubstitution } from './src/revert.ts';
 import { mightSubstitute, substitutionFor } from './src/substitute.ts';
 import { DEFAULT_SETTINGS, QUOTE_CONVENTIONS } from './src/settings.ts';
@@ -54,6 +56,54 @@ export default class SmartTypographyPlugin extends Plugin {
 
     this.addSettingTab(new SmartTypographySettingTab(this.app, this));
     this.registerEditorExtension(this.editorExtension());
+
+    this.addCommand({
+      id: 'toggle-note',
+      name: 'Turn substitutions off or on in this note',
+      icon: 'toggle-right',
+      editorCallback: async (editor, ctx) => {
+        const text = editor.getValue();
+        const off = !noteIsOff(text);
+        // processFrontMatter (1.4.4) is the only edit Live Preview lets
+        // remove a property with; an editor change that deletes inside the
+        // front matter is dropped there. Older apps get the text edit.
+        if (ctx.file && typeof this.app.fileManager.processFrontMatter === 'function') {
+          await this.app.fileManager.processFrontMatter(ctx.file, (frontmatter: Record<string, unknown>) => {
+            if (off) frontmatter[NOTE_PROPERTY] = 'off';
+            else delete frontmatter[NOTE_PROPERTY];
+          });
+        } else {
+          const edit = setNoteOff(text, off);
+          if (edit) {
+            editor.transaction({
+              changes: [{ from: editor.offsetToPos(edit.from), to: editor.offsetToPos(edit.to), text: edit.insert }],
+            });
+          }
+        }
+        const folder = ctx.file && inFolder(ctx.file.path, folderList(this.settings.excludedFolders));
+        new Notice(
+          off
+            ? 'Typography: substitutions are off in this note.'
+            : folder
+              ? 'Typography: removed the property, but this note is in an excluded folder, so substitutions stay off.'
+              : 'Typography: substitutions are on in this note.',
+        );
+      },
+    });
+  }
+
+  /**
+   * Whether the note in this editor is one the substitutions keep out of:
+   * it is in an excluded folder, or its `typography` property is `off`.
+   * The property is read from the metadata cache, which is a lookup, and
+   * this only runs for the few characters a rule reacts to.
+   */
+  private leftAlone(state: EditorState): boolean {
+    const file = state.field(editorInfoField, false)?.file;
+    if (!file) return false;
+    if (this.settings.excludedFolders && inFolder(file.path, folderList(this.settings.excludedFolders))) return true;
+    const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
+    return isOff(frontmatter?.[NOTE_PROPERTY]);
   }
 
   async loadSettings() {
@@ -97,6 +147,7 @@ export default class SmartTypographyPlugin extends Plugin {
    */
   private composedQuotes(): Extension {
     const settings = () => this.settings;
+    const leftAlone = (state: EditorState) => this.leftAlone(state);
 
     return ViewPlugin.fromClass(
       class {
@@ -148,7 +199,7 @@ export default class SmartTypographyPlugin extends Plugin {
           const from = Math.max(0, this.range.from);
           const to = Math.min(state.doc.length, this.range.to);
           this.range = null;
-          if (state.readOnly || from >= to) return;
+          if (state.readOnly || from >= to || leftAlone(state)) return;
 
           const composed = state.doc.sliceString(from, to);
           if (!composed.includes('"') && !composed.includes("'")) return;
@@ -180,6 +231,7 @@ export default class SmartTypographyPlugin extends Plugin {
     // Nearly every keystroke is a letter or a space, which no rule reacts
     // to. Those leave before the note is copied for the engine below.
     if (!mightSubstitute(text)) return false;
+    if (this.leftAlone(view.state)) return false;
 
     // The engine is given the document up to the cursor because the
     // protected-region scan has to know whether a code fence is open
@@ -275,6 +327,13 @@ const SETTING_TEXT: Record<keyof SmartTypographySettings, { name: string; desc: 
     name: 'Mathematical symbols',
     desc: '>= becomes ≥, <= becomes ≤, != becomes ≠, +- becomes ±.',
   },
+  excludedFolders: {
+    name: 'Excluded folders',
+    desc:
+      'Nothing is substituted in notes inside these folders, one folder per line (for example Code or ' +
+      'Templates/Raw). A single note can opt out with the property "typography: off", or the command ' +
+      '"Turn substitutions off or on in this note".',
+  },
 };
 
 /** The note under the settings, explaining where the plugin keeps out. */
@@ -327,6 +386,16 @@ class SmartTypographySettingTab extends PluginSettingTab {
           defaultValue: DEFAULT_SETTINGS[key],
         },
       })),
+      {
+        ...SETTING_TEXT.excludedFolders,
+        control: {
+          type: 'textarea' as const,
+          key: 'excludedFolders',
+          placeholder: 'Code\nTemplates',
+          rows: 3,
+          defaultValue: DEFAULT_SETTINGS.excludedFolders,
+        },
+      },
       // No control: a row that is only an explanation, which also puts the
       // sentence in the settings search.
       KEEPS_OUT_NOTE,
@@ -368,6 +437,17 @@ class SmartTypographySettingTab extends PluginSettingTab {
       });
 
     for (const key of TOGGLE_KEYS) this.addToggle(key);
+
+    new Setting(containerEl)
+      .setName(SETTING_TEXT.excludedFolders.name)
+      .setDesc(SETTING_TEXT.excludedFolders.desc)
+      .addTextArea((area) => {
+        area.setPlaceholder('Code\nTemplates').setValue(this.plugin.settings.excludedFolders);
+        area.onChange(async (value) => {
+          this.plugin.settings.excludedFolders = value;
+          await this.plugin.saveSettings();
+        });
+      });
 
     containerEl.createEl('p', {
       text: `${KEEPS_OUT_NOTE.name}. ${KEEPS_OUT_NOTE.desc}`,

@@ -105,6 +105,17 @@ which would stop being one with a dash in it.
 [#46]: https://github.com/mgmeyers/obsidian-smart-typography/issues/46
 [#62]: https://github.com/mgmeyers/obsidian-smart-typography/issues/62
 
+## Turning it off for a folder or a note
+
+- **Excluded folders** in the settings takes one folder per line. Nothing is
+  substituted in any note inside them, at any depth: a folder of code
+  snippets, raw imports, or templates that must stay plain ([#41]).
+- **One note** opts out with the property `typography: off`. The command
+  *Turn substitutions off or on in this note* adds or removes it for you.
+
+Everything else about the note (its quotes, dashes and ellipses already in
+place) is left as it is; only new typing stops being converted.
+
 ## Undo, and taking a substitution back
 
 Each substitution is one editor transaction covering both the character you
@@ -196,9 +207,6 @@ them ([#66]).
 - **Reading-view-only substitution** ([#40], [#67]). That is a different
   plugin: it would render substitutions without changing the note, and
   mixing the two in one settings tab makes both confusing.
-- **Restricting substitution to particular folders** ([#41]). Worth doing,
-  but it needs the editor to know which file it is showing, which the
-  current extension does not.
 - **Superscripts and subscripts** ([#69]), and **unit symbols** ([#73]).
   Both are substitutions of a different kind, and `^2` is live markdown in
   too many vaults to convert by default.

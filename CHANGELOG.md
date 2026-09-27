@@ -4,6 +4,13 @@ The release workflow uses the section named after the version being released
 as the release description, so every version needs one. `npm version <x.y.z>`
 renames the `Unreleased` heading below to that version.
 
+## Unreleased
+
+- **Excluded folders**: a new setting, one folder per line. Nothing is
+  substituted in notes inside them (mgmeyers/obsidian-smart-typography#41).
+- **Per-note opt-out**: a note with the property `typography: off` is left
+  alone, and the new command *Turn substitutions off or on in this note*
+  adds or removes that property.
 ## 0.1.5
 
 - Quotes typed inside an HTML tag stay straight. `<span style="color: red">`
