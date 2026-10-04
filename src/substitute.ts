@@ -15,7 +15,10 @@ import { APOSTROPHE, conventionFor } from './settings.ts';
 import type { QuoteConvention, SmartTypographySettings } from './settings.ts';
 
 export type Action =
-  /** Replace `[from, to)` with `insert`, where `to` is the cursor. */
+  /**
+   * Replace `[from, to)` with `insert`, where `to` is the cursor, or one
+   * past it when a custom rule also takes an auto-paired closing bracket.
+   */
   | {
       kind: 'replace';
       from: number;
@@ -108,7 +111,7 @@ function candidateFor(
   if (typed === '"' || typed === "'") {
     return (
       quoteAction(before, after, typed, settings, convention) ??
-      customAction(before, lineBefore, typed, settings)
+      customAction(before, after, lineBefore, typed, settings)
     );
   }
 
@@ -118,7 +121,7 @@ function candidateFor(
   }
 
   const rule = matchRule(before, lineBefore, typed, (group) => groupEnabled(group, settings));
-  if (!rule) return customAction(before, lineBefore, typed, settings);
+  if (!rule) return customAction(before, after, lineBefore, typed, settings);
 
   return {
     kind: 'replace',
@@ -137,6 +140,7 @@ function candidateFor(
  */
 function customAction(
   before: string,
+  after: string,
   lineBefore: string,
   typed: string,
   settings: SmartTypographySettings,
@@ -149,11 +153,29 @@ function customAction(
   return {
     kind: 'replace',
     from: pos - rule.before.length,
-    to: pos,
+    to: pos + (autoPairedCloser(rule.before, after, typed) ? 1 : 0),
     insert: rule.insert,
     literal: rule.literal,
     rule: 'custom',
   };
+}
+
+const OPENER: Record<string, string> = { ')': '(', ']': '[', '}': '{' };
+
+/**
+ * Whether the closing bracket being typed has a twin right after the
+ * cursor that the editor put there when the sequence's own opening bracket
+ * was typed ("Auto-pair brackets", on by default). Typing `(c)` then leaves
+ * `(c|)`, and the `)` typed over it would otherwise outlive the rule as
+ * `©)`. The twin is taken as part of the sequence when the sequence opened
+ * more of that bracket than it closed.
+ */
+function autoPairedCloser(sequenceBefore: string, after: string, typed: string): boolean {
+  const opener = OPENER[typed];
+  if (opener === undefined || !after.startsWith(typed)) return false;
+  const opened = sequenceBefore.split(opener).length - 1;
+  const closed = sequenceBefore.split(typed).length - 1;
+  return opened > closed;
 }
 
 function groupEnabled(group: RuleGroup, settings: SmartTypographySettings): boolean {

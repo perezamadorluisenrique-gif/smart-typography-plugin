@@ -311,3 +311,14 @@ test('rules whose sequences never occur leave every result as it was', () => {
     assert.equal(type(text, settings.customRules), type(text, ''));
   }
 });
+
+test('a closing bracket the editor auto-paired goes with the rule', () => {
+  const settings: SmartTypographySettings = { ...DEFAULT_SETTINGS, customRules: SYMBOLS };
+  // Obsidian's "Auto-pair brackets" leaves `Made (c|)` before the `)` is typed.
+  const paired = substitutionFor('Made (c', ') 2026', ')', settings);
+  assert.deepEqual(paired, { kind: 'replace', from: 5, to: 8, insert: '©', literal: '(c)', rule: 'custom' });
+  // Without the twin, or with a `)` the sequence did not open, the text after the cursor stays.
+  assert.equal(substitutionFor('Made (c', ' 2026', ')', settings)?.to, 7);
+  const own = { ...DEFAULT_SETTINGS, customRules: 'c) -> ©' };
+  assert.equal(substitutionFor('(a c', ')', ')', own)?.to, 4);
+});
