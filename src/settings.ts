@@ -126,6 +126,8 @@ export interface SmartTypographySettings {
   skipClosingQuote: boolean;
   /** Folders where nothing is substituted, one vault path per line. */
   excludedFolders: string;
+  /** The user's own rules, one `sequence -> replacement` per line. See `custom.ts`. */
+  customRules: string;
 }
 
 export const DEFAULT_SETTINGS: SmartTypographySettings = {
@@ -137,6 +139,7 @@ export const DEFAULT_SETTINGS: SmartTypographySettings = {
   mathSymbols: true,
   skipClosingQuote: true,
   excludedFolders: '',
+  customRules: '',
 };
 
 /** The convention in use, or null when quote substitution is switched off. */

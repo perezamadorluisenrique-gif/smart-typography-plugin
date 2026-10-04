@@ -4,6 +4,13 @@ The release workflow uses the section named after the version being released
 as the release description, so every version needs one. `npm version <x.y.z>`
 renames the `Unreleased` heading below to that version.
 
+## 0.4.0
+
+- Your own replacements: a list of "sequence -> replacement" rules in settings, such as (c) -> ©, that fire as you type, stay out of code, math, links and front matter, and come back with Backspace like the built-in ones.
+- Two optional presets add guillemets (<< and >>, never at the start of a line, where >> is a nested quote) and the symbols ©, ® and ™.
+- The settings list any line of your own replacements that is ignored, and why.
+- Apply typography to the selection or the whole note uses your own replacements too.
+
 ## 0.3.1
 
 - Passes the directory review's API-version check: the per-note on/off command still uses processFrontMatter on Obsidian 1.4.4 and later and falls back to a text edit on older versions.
