@@ -48,6 +48,51 @@ Each group has its own switch in settings.
 leftwards double arrow. With mathematical symbols on it gives `≤`, and
 `<==` still reaches `⇐`. With them off, `<=` gives `⇐`.
 
+## Your own replacements
+
+**Your own replacements** in the settings takes one rule per line: the
+characters you type, ` -> `, and what they become.
+
+```
+(c) -> ©
+(tm) -> ™
+:check: -> ✓
+```
+
+A rule fires as you type the last character of its sequence, and it goes
+through the same engine as the table above: nothing is replaced in code,
+formulas, links, front matter, excluded folders or notes with
+`typography: off`, and Backspace straight afterwards puts back what you
+typed. *Apply typography to the selection or the whole note* uses your rules
+too.
+
+- **The built-in rules go first.** A sequence the table above already
+  handles, such as `+-`, only uses your rule while that group is switched
+  off. A sequence the table rewrites halfway through never appears as
+  typed: in `--x` the `--` has become `–` before the `x` arrives, so write
+  the rule as `–x`, or switch dashes off.
+- **When two of your sequences end at the cursor, the longer one wins**, so
+  `ba>` beats `a>` after a `b`. A sequence that extends another one chains
+  off it, the way `---` chains off `--`: with `<< -> «` and `<<< -> ⋘`,
+  typing `<<<` gives `⋘`, and Backspace gives back all three `<`.
+- **Lines that are not rules are listed under the box**, with the reason:
+  no ` -> `, a sequence shorter than two characters, only spaces, a
+  sequence already on an earlier line. A sequence cannot contain ` -> `
+  itself.
+
+Two presets add rules in one click; neither is on until you click it:
+
+| Preset | Rules |
+| --- | --- |
+| Guillemets | `<<` → `«`, `>>` → `»` |
+| Symbols | `(c)` → `©`, `(r)` → `®`, `(tm)` → `™` |
+
+`>>` at the start of a line, after optional spaces or other `>`, opens a
+nested blockquote, so none of your rules fires on a `>` typed while the line
+so far is only spaces and `>`. `+-` is not in the
+symbols preset because the mathematical symbols group already turns it
+into `±`.
+
 ## Quotation marks in your language
 
 The convention is a dropdown, not a fixed set of curly quotes: English,
@@ -179,6 +224,7 @@ what you typed, turn Smart Punctuation off.
   the last substitution, and the settings tab.
 - `src/` is pure logic with no imports from either: `context.ts` decides
   what is protected, `rules.ts` is the table of character substitutions,
+  `custom.ts` compiles your own replacements into the same shape,
   `substitute.ts` turns a keystroke into an editor change, `compose.ts`
   curls the quotes a composition left behind, `revert.ts`
   decides whether Backspace should put something back, and `settings.ts`
@@ -193,7 +239,7 @@ npm run build
 
 ## What is tested, and where
 
-The 83 tests cover the engine, not the editor. They type through
+The 130 tests cover the engine, not the editor. They type through
 `substitutionFor` one character at a time, which is how the chained rules
 get exercised.
 

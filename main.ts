@@ -14,6 +14,8 @@ import { NOTE_PROPERTY, folderList, inFolder, isOff, noteIsOff, setNoteOff } fro
 import type { LastSubstitution } from './src/revert.ts';
 import { mightSubstitute, substitutionFor } from './src/substitute.ts';
 import { DEFAULT_SETTINGS, QUOTE_CONVENTIONS } from './src/settings.ts';
+import { PRESETS, addPreset, customRulesFor } from './src/custom.ts';
+import type { Preset } from './src/custom.ts';
 import type { QuoteStyleId, SmartTypographySettings } from './src/settings.ts';
 
 /**
@@ -148,6 +150,7 @@ export default class SmartTypographyPlugin extends Plugin {
     // narrowed before it is merged over the defaults.
     const stored = (await this.loadData()) as Partial<SmartTypographySettings> | null;
     this.settings = { ...DEFAULT_SETTINGS, ...stored };
+    if (typeof this.settings.customRules !== 'string') this.settings.customRules = '';
   }
 
   async saveSettings() {
@@ -266,7 +269,7 @@ export default class SmartTypographyPlugin extends Plugin {
 
     // Nearly every keystroke is a letter or a space, which no rule reacts
     // to. Those leave before the note is copied for the engine below.
-    if (!mightSubstitute(text)) return false;
+    if (!mightSubstitute(text, this.settings)) return false;
     if (this.leftAlone(view.state)) return false;
 
     // The engine is given the document up to the cursor because the
@@ -370,6 +373,24 @@ const SETTING_TEXT: Record<keyof SmartTypographySettings, { name: string; desc: 
       'Templates/Raw). A single note can opt out with the property "typography: off", or the command ' +
       '"Turn substitutions off or on in this note".',
   },
+  customRules: {
+    name: 'Your own replacements',
+    desc:
+      'One rule per line, the characters you type, then " -> ", then what they become: (c) -> ©. A rule ' +
+      'fires as you type the last character of its sequence, in the same places as the rules above, and ' +
+      'Backspace straight after puts back what you typed. The rules above go first: a sequence they also ' +
+      'handle only uses yours while their switch is off. A sequence needs at least two characters.',
+  },
+};
+
+/** The row under the custom rules that says which lines are not used. */
+const CUSTOM_STATUS = { name: 'Rules in use' };
+
+/** The row with the preset buttons. */
+const PRESET_TEXT = {
+  name: 'Add a preset',
+  desc: 'Adds a ready-made set of rules to your list; rules already in it are left alone. ' +
+    '>> is never replaced at the start of a line, where it opens a nested quote.',
 };
 
 /** The note under the settings, explaining where the plugin keeps out. */
@@ -432,10 +453,89 @@ class SmartTypographySettingTab extends PluginSettingTab {
           defaultValue: DEFAULT_SETTINGS.excludedFolders,
         },
       },
+      {
+        ...SETTING_TEXT.customRules,
+        control: {
+          type: 'textarea' as const,
+          key: 'customRules',
+          placeholder: ':check: -> ✓',
+          rows: 4,
+          defaultValue: DEFAULT_SETTINGS.customRules,
+        },
+      },
+      {
+        ...CUSTOM_STATUS,
+        searchable: false,
+        render: (setting: Setting) => {
+          this.statusEl = setting.descEl;
+          this.showStatus();
+          return () => {
+            this.statusEl = null;
+          };
+        },
+      },
+      {
+        ...PRESET_TEXT,
+        render: (setting: Setting) => this.presetButtons(setting),
+      },
       // No control: a row that is only an explanation, which also puts the
       // sentence in the settings search.
       KEEPS_OUT_NOTE,
     ];
+  }
+
+  /** Where the custom rules' status is written, while the tab is open. */
+  private statusEl: HTMLElement | null = null;
+
+  /** Set once Obsidian has drawn the tab through `display()`, which it does only before 1.13. */
+  private legacy = false;
+
+  /** Says how many custom rules are in use and which lines are ignored, and why. */
+  private showStatus(): void {
+    const el = this.statusEl;
+    if (!el) return;
+    el.empty();
+    const { rules, ignored } = customRulesFor(this.plugin.settings.customRules);
+    el.createDiv({
+      text:
+        rules.length === 0
+          ? 'No rules yet.'
+          : `${rules.length} ${rules.length === 1 ? 'rule' : 'rules'} in use.`,
+    });
+    for (const item of ignored) {
+      el.createDiv({
+        cls: 'mod-warning',
+        text: `Ignored, line ${item.line} (${item.text.trim()}): ${item.reason}.`,
+      });
+    }
+  }
+
+  private presetButtons(setting: Setting): void {
+    for (const preset of PRESETS) {
+      setting.addButton((button) =>
+        button.setButtonText(preset.label).onClick(() => void this.addPreset(preset)),
+      );
+    }
+  }
+
+  private async addPreset(preset: Preset): Promise<void> {
+    const { setting, added } = addPreset(this.plugin.settings.customRules, preset);
+    if (added === 0) {
+      new Notice('Typography: those rules are already in your list.');
+      return;
+    }
+    this.plugin.settings.customRules = setting;
+    await this.plugin.saveSettings();
+    new Notice(`Typography: added ${added} ${added === 1 ? 'rule' : 'rules'}.`);
+    // Draws the tab again so the text area shows the new lines.
+    if (this.legacy) {
+      this.display();
+      return;
+    }
+    // Obsidian 1.13's re-render of the declarative definitions. Looked up
+    // rather than called directly, because older versions do not have it.
+    const tab = this as unknown as { update?: () => void };
+    tab.update?.();
   }
 
   /**
@@ -447,6 +547,7 @@ class SmartTypographySettingTab extends PluginSettingTab {
   async setControlValue(key: string, value: unknown): Promise<void> {
     Object.assign(this.plugin.settings, { [key]: value });
     await this.plugin.saveSettings();
+    if (key === 'customRules') this.showStatus();
   }
 
   /**
@@ -455,6 +556,7 @@ class SmartTypographySettingTab extends PluginSettingTab {
    * current app and only runs for users below the 1.13 line.
    */
   display(): void {
+    this.legacy = true;
     const { containerEl } = this;
     containerEl.empty();
 
@@ -484,6 +586,24 @@ class SmartTypographySettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         });
       });
+
+    new Setting(containerEl)
+      .setName(SETTING_TEXT.customRules.name)
+      .setDesc(SETTING_TEXT.customRules.desc)
+      .addTextArea((area) => {
+        area.setPlaceholder(':check: -> ✓').setValue(this.plugin.settings.customRules);
+        area.onChange(async (value) => {
+          this.plugin.settings.customRules = value;
+          await this.plugin.saveSettings();
+          this.showStatus();
+        });
+      });
+
+    const status = new Setting(containerEl).setName(CUSTOM_STATUS.name);
+    this.statusEl = status.descEl;
+    this.showStatus();
+
+    this.presetButtons(new Setting(containerEl).setName(PRESET_TEXT.name).setDesc(PRESET_TEXT.desc));
 
     containerEl.createEl('p', {
       text: `${KEEPS_OUT_NOTE.name}. ${KEEPS_OUT_NOTE.desc}`,

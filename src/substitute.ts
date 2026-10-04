@@ -7,13 +7,18 @@
  */
 
 import { protectedRegionAt } from './context.ts';
+import { customRulesFor, customTriggers, matchCustomRule } from './custom.ts';
+import type { CustomRule } from './custom.ts';
 import { RULES, matchRule } from './rules.ts';
 import type { RuleGroup } from './rules.ts';
 import { APOSTROPHE, conventionFor } from './settings.ts';
 import type { QuoteConvention, SmartTypographySettings } from './settings.ts';
 
 export type Action =
-  /** Replace `[from, to)` with `insert`, where `to` is the cursor. */
+  /**
+   * Replace `[from, to)` with `insert`, where `to` is the cursor, or one
+   * past it when a custom rule also takes an auto-paired closing bracket.
+   */
   | {
       kind: 'replace';
       from: number;
@@ -57,7 +62,7 @@ export function substitutionFor(
   typed: string,
   settings: SmartTypographySettings,
 ): Action | null {
-  if (!mightSubstitute(typed)) return null;
+  if (!mightSubstitute(typed, settings)) return null;
 
   const action = candidateFor(before, after, typed, settings);
   // The protected-region scan reads the whole note up to the cursor, so it
@@ -65,18 +70,31 @@ export function substitutionFor(
   // keystroke, never pay for it; on a phone with a long note that scan is
   // the difference between typing and lag.
   if (action === null || protectedRegionAt(before) !== null) return null;
+  // A custom sequence can be several characters long and contain markup, so
+  // where it starts has to be prose as well as where the cursor is.
+  if (
+    action.kind === 'replace' &&
+    action.rule === 'custom' &&
+    protectedRegionAt(before.slice(0, action.from)) !== null
+  ) {
+    return null;
+  }
   return action;
 }
 
-/** Every character some rule reacts to. */
+/** Every character some built-in rule reacts to. */
 const TRIGGERS = new Set(['"', "'", ...'0123456789', ...RULES.map((rule) => rule.typed)]);
 
 /**
  * Whether `typed` could start a substitution at all. Anything else, which is
  * nearly every keystroke, is let through without looking at the document.
+ * Without `settings` only the built-in rules are considered.
  */
-export function mightSubstitute(typed: string): boolean {
-  return typed.length === 1 && TRIGGERS.has(typed);
+export function mightSubstitute(typed: string, settings?: SmartTypographySettings): boolean {
+  if (typed.length !== 1) return false;
+  if (TRIGGERS.has(typed)) return true;
+  if (!settings?.customRules) return false;
+  return customTriggers(customRulesFor(settings.customRules).rules).has(typed);
 }
 
 function candidateFor(
@@ -88,8 +106,13 @@ function candidateFor(
   const pos = before.length;
   const convention = conventionFor(settings.quoteStyle);
 
+  const lineBefore = before.slice(before.lastIndexOf('\n') + 1);
+
   if (typed === '"' || typed === "'") {
-    return quoteAction(before, after, typed, settings, convention);
+    return (
+      quoteAction(before, after, typed, settings, convention) ??
+      customAction(before, after, lineBefore, typed, settings)
+    );
   }
 
   if (settings.smartApostrophes && convention && /[0-9]/.test(typed)) {
@@ -97,9 +120,8 @@ function candidateFor(
     if (decade) return decade;
   }
 
-  const lineBefore = before.slice(before.lastIndexOf('\n') + 1);
   const rule = matchRule(before, lineBefore, typed, (group) => groupEnabled(group, settings));
-  if (!rule) return null;
+  if (!rule) return customAction(before, after, lineBefore, typed, settings);
 
   return {
     kind: 'replace',
@@ -109,6 +131,51 @@ function candidateFor(
     literal: rule.literal,
     rule: rule.group,
   };
+}
+
+/**
+ * The user's own rule for this keystroke, or null. Only reached when no
+ * built-in rule fired, so built-ins keep priority and an empty list
+ * changes nothing.
+ */
+function customAction(
+  before: string,
+  after: string,
+  lineBefore: string,
+  typed: string,
+  settings: SmartTypographySettings,
+): Action | null {
+  if (!settings.customRules) return null;
+  const rules: CustomRule[] = customRulesFor(settings.customRules).rules;
+  const rule = matchCustomRule(before, lineBefore, typed, rules);
+  if (!rule) return null;
+  const pos = before.length;
+  return {
+    kind: 'replace',
+    from: pos - rule.before.length,
+    to: pos + (autoPairedCloser(rule.before, after, typed) ? 1 : 0),
+    insert: rule.insert,
+    literal: rule.literal,
+    rule: 'custom',
+  };
+}
+
+const OPENER: Record<string, string> = { ')': '(', ']': '[', '}': '{' };
+
+/**
+ * Whether the closing bracket being typed has a twin right after the
+ * cursor that the editor put there when the sequence's own opening bracket
+ * was typed ("Auto-pair brackets", on by default). Typing `(c)` then leaves
+ * `(c|)`, and the `)` typed over it would otherwise outlive the rule as
+ * `©)`. The twin is taken as part of the sequence when the sequence opened
+ * more of that bracket than it closed.
+ */
+function autoPairedCloser(sequenceBefore: string, after: string, typed: string): boolean {
+  const opener = OPENER[typed];
+  if (opener === undefined || !after.startsWith(typed)) return false;
+  const opened = sequenceBefore.split(opener).length - 1;
+  const closed = sequenceBefore.split(typed).length - 1;
+  return opened > closed;
 }
 
 function groupEnabled(group: RuleGroup, settings: SmartTypographySettings): boolean {
