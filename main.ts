@@ -1,4 +1,4 @@
-import { App, Notice, Plugin, PluginSettingTab, Setting, editorInfoField } from 'obsidian';
+import { App, Modal, Notice, Plugin, PluginSettingTab, Setting, editorInfoField } from 'obsidian';
 import type { FileManager, SettingDefinitionItem } from 'obsidian';
 import { Prec, StateEffect, StateField } from '@codemirror/state';
 import type { Extension } from '@codemirror/state';
@@ -6,13 +6,18 @@ import { EditorView, ViewPlugin, keymap } from '@codemirror/view';
 import type { EditorState } from '@codemirror/state';
 import type { ViewUpdate } from '@codemirror/view';
 
+import { protectedRegionAt } from './src/context.ts';
 import { changesBetween, typographize } from './src/apply.ts';
 import type { TextChange } from './src/apply.ts';
 import { curlComposedQuotes } from './src/compose.ts';
 import { revertFor } from './src/revert.ts';
 import { NOTE_PROPERTY, folderList, inFolder, isOff, noteIsOff, setNoteOff } from './src/scope.ts';
 import type { LastSubstitution } from './src/revert.ts';
-import { mightSubstitute, substitutionFor } from './src/substitute.ts';
+import { cannotCapitalize, mightSubstitute, substitutionFor } from './src/substitute.ts';
+import { STYLE_PRESETS, applyStylePreset, shouldPromptForPreset } from './src/presets.ts';
+import type { StylePreset } from './src/presets.ts';
+import { tabOutTarget } from './src/tabout.ts';
+import { wrapFor } from './src/wrap.ts';
 import { DEFAULT_SETTINGS, QUOTE_CONVENTIONS } from './src/settings.ts';
 import { PRESETS, addPreset, customRulesFor } from './src/custom.ts';
 import type { Preset } from './src/custom.ts';
@@ -54,12 +59,24 @@ const lastSubstitution = StateField.define<LastSubstitution | null>({
 
 export default class SmartTypographyPlugin extends Plugin {
   settings: SmartTypographySettings = { ...DEFAULT_SETTINGS };
+  private showPresetPrompt = false;
 
   async onload() {
     await this.loadSettings();
 
     this.addSettingTab(new SmartTypographySettingTab(this.app, this));
     this.registerEditorExtension(this.editorExtension());
+
+    // First run only: offer the style presets once. The flag is saved the
+    // moment the prompt opens, so closing it any way counts as an answer.
+    if (this.showPresetPrompt) {
+      this.showPresetPrompt = false;
+      this.settings.presetPrompted = true;
+      this.app.workspace.onLayoutReady(() => {
+        new PresetModal(this.app, this).open();
+        void this.saveSettings();
+      });
+    }
 
     this.addCommand({
       id: 'toggle-note',
@@ -149,8 +166,18 @@ export default class SmartTypographyPlugin extends Plugin {
     // some earlier version of this plugin, so it is read as `unknown` and
     // narrowed before it is merged over the defaults.
     const stored = (await this.loadData()) as Partial<SmartTypographySettings> | null;
+    // No data.json at all means a first run. Anyone who has one, even from
+    // before presets existed, already has settings and is never asked.
+    this.showPresetPrompt = shouldPromptForPreset(stored);
     this.settings = { ...DEFAULT_SETTINGS, ...stored };
+    if (!this.showPresetPrompt) this.settings.presetPrompted = true;
     if (typeof this.settings.customRules !== 'string') this.settings.customRules = '';
+  }
+
+  /** Applies a style preset and saves; used by the first-run prompt and the settings tab. */
+  async applyStylePreset(preset: StylePreset): Promise<void> {
+    this.settings = applyStylePreset(this.settings, preset);
+    await this.saveSettings();
   }
 
   async saveSettings() {
@@ -173,7 +200,10 @@ export default class SmartTypographyPlugin extends Plugin {
         EditorView.inputHandler.of((view, from, to, text) => this.handleInput(view, from, to, text)),
       ),
       Prec.highest(
-        keymap.of([{ key: 'Backspace', run: (view) => this.handleBackspace(view) }]),
+        keymap.of([
+          { key: 'Backspace', run: (view) => this.handleBackspace(view) },
+          { key: 'Tab', run: (view) => this.handleTab(view) },
+        ]),
       ),
       this.composedQuotes(),
     ];
@@ -263,6 +293,9 @@ export default class SmartTypographyPlugin extends Plugin {
     if (view.composing) return false;
     if (view.state.readOnly) return false;
 
+    // Typing a quote over a selection wraps it.
+    if (from !== to && text.length === 1) return this.handleWrap(view, from, to, text);
+
     // Only a plain single character typed at a collapsed cursor. A
     // replacement of selected text has no keystroke history to work from.
     if (from !== to || text.length !== 1) return false;
@@ -270,6 +303,13 @@ export default class SmartTypographyPlugin extends Plugin {
     // Nearly every keystroke is a letter or a space, which no rule reacts
     // to. Those leave before the note is copied for the engine below.
     if (!mightSubstitute(text, this.settings)) return false;
+    // A letter can only be capitalised at the start of a sentence, which the
+    // cursor's own line decides; most letters leave here without a copy of
+    // the note.
+    if (this.settings.capitalizeSentences) {
+      const line = view.state.doc.lineAt(from);
+      if (cannotCapitalize(text, line.text.slice(0, from - line.from), this.settings)) return false;
+    }
     if (this.leftAlone(view.state)) return false;
 
     // The engine is given the document up to the cursor because the
@@ -310,6 +350,53 @@ export default class SmartTypographyPlugin extends Plugin {
     return true;
   }
 
+  private handleWrap(view: EditorView, from: number, to: number, text: string): boolean {
+    const { state } = view;
+    // Only text the user selected: during an input method's composition the
+    // replaced range is the half-finished text, not a selection.
+    const main = state.selection.main;
+    if (state.selection.ranges.length !== 1 || main.from !== from || main.to !== to) return false;
+    if (view.compositionStarted || view.composing) return false;
+    const wrap = wrapFor(text, this.settings);
+    if (wrap === null || this.leftAlone(state)) return false;
+    // Not inside code, math, a link target or front matter: there a quote is
+    // just a quote, and the default replace-the-selection behaviour stays.
+    if (protectedRegionAt(state.doc.sliceString(0, from)) !== null) return false;
+    if (protectedRegionAt(state.doc.sliceString(0, to)) !== null) return false;
+
+    // One transaction, so one undo takes the quotes off again. The text stays
+    // selected, so typing another quote nests another pair.
+    view.dispatch({
+      changes: [
+        { from, insert: wrap.open },
+        { from: to, insert: wrap.close },
+      ],
+      selection: { anchor: from + wrap.open.length, head: to + wrap.open.length },
+      userEvent: 'input.type',
+    });
+    return true;
+  }
+
+  private handleTab(view: EditorView): boolean {
+    const { state } = view;
+    if (!this.settings.tabOut || state.readOnly || view.composing) return false;
+    const selection = state.selection;
+    if (selection.ranges.length !== 1 || !selection.main.empty) return false;
+    const head = selection.main.head;
+    const line = state.doc.lineAt(head);
+    // Cheap exit before copying the note: Tab at a non-closer is the usual case.
+    if (head === line.to) return false;
+    if (this.leftAlone(state)) return false;
+    const target = tabOutTarget(
+      state.doc.sliceString(0, head),
+      state.doc.sliceString(head, line.to),
+      this.settings,
+    );
+    if (target === null) return false;
+    view.dispatch({ selection: { anchor: target }, userEvent: 'move.character', scrollIntoView: true });
+    return true;
+  }
+
   private handleBackspace(view: EditorView): boolean {
     const { state } = view;
     const selection = state.selection.main;
@@ -339,7 +426,7 @@ function quoteStyleOptions(): Record<string, string> {
  * definitions below and the `display()` fallback both read from here, so the
  * two renderings cannot drift apart.
  */
-const SETTING_TEXT: Record<keyof SmartTypographySettings, { name: string; desc: string }> = {
+const SETTING_TEXT: Record<Exclude<keyof SmartTypographySettings, 'presetPrompted'>, { name: string; desc: string }> = {
   quoteStyle: {
     name: 'Quotation marks',
     desc:
@@ -355,6 +442,23 @@ const SETTING_TEXT: Record<keyof SmartTypographySettings, { name: string; desc: 
     desc:
       'Typing a closing quote where one already sits moves the cursor past ' +
       'it instead of adding a second one.',
+  },
+  capitalizeSentences: {
+    name: 'Capitalize sentences',
+    desc:
+      'Types a capital for the first letter of a line or of a sentence after . ! or ?. It keeps out of code, ' +
+      'links, tags and paths, and after abbreviations such as Mr., e.g. or etc. Backspace right after puts back ' +
+      'the lowercase letter.',
+  },
+  tabOut: {
+    name: 'Tab to jump out',
+    desc:
+      'With the cursor right before a closing quote or bracket, Tab moves past it. Tab still indents in lists ' +
+      'and moves between cells in tables.',
+  },
+  wrapSelection: {
+    name: 'Wrap a selection in quotes',
+    desc: 'With text selected, typing a quote puts curly quotes around it instead of replacing it.',
   },
   dashes: { name: 'Dashes', desc: '-- becomes – and --- becomes —.' },
   ellipsis: { name: 'Ellipsis', desc: '... becomes ….' },
@@ -410,7 +514,18 @@ const TOGGLE_KEYS = [
   'ellipsis',
   'arrows',
   'mathSymbols',
+  'capitalizeSentences',
+  'tabOut',
+  'wrapSelection',
 ] as const;
+
+/** The row with the style preset buttons. */
+const STYLE_PRESET_TEXT = {
+  name: 'Style preset',
+  desc:
+    'Sets the switches above in one go: Writer, Academic, Developer (quiet) or Default. Your folders, ' +
+    'quote style (except Developer) and own replacements are kept.',
+};
 
 class SmartTypographySettingTab extends PluginSettingTab {
   constructor(app: App, private plugin: SmartTypographyPlugin) {
@@ -434,6 +549,11 @@ class SmartTypographySettingTab extends PluginSettingTab {
           options: quoteStyleOptions(),
           defaultValue: DEFAULT_SETTINGS.quoteStyle,
         },
+      },
+      {
+        ...STYLE_PRESET_TEXT,
+        searchable: true,
+        render: (setting: Setting) => this.stylePresetButtons(setting),
       },
       ...TOGGLE_KEYS.map((key) => ({
         ...SETTING_TEXT[key],
@@ -510,6 +630,25 @@ class SmartTypographySettingTab extends PluginSettingTab {
     }
   }
 
+  private stylePresetButtons(setting: Setting): void {
+    for (const preset of STYLE_PRESETS) {
+      setting.addButton((button) =>
+        button.setButtonText(preset.label).onClick(() => void this.applyStyle(preset)),
+      );
+    }
+  }
+
+  private async applyStyle(preset: StylePreset): Promise<void> {
+    await this.plugin.applyStylePreset(preset);
+    new Notice(`Typography: ${preset.label} preset applied.`);
+    if (this.legacy) {
+      this.display();
+      return;
+    }
+    const tab = this as unknown as { update?: () => void };
+    tab.update?.();
+  }
+
   private presetButtons(setting: Setting): void {
     for (const preset of PRESETS) {
       setting.addButton((button) =>
@@ -574,6 +713,10 @@ class SmartTypographySettingTab extends PluginSettingTab {
         });
       });
 
+    this.stylePresetButtons(
+      new Setting(containerEl).setName(STYLE_PRESET_TEXT.name).setDesc(STYLE_PRESET_TEXT.desc),
+    );
+
     for (const key of TOGGLE_KEYS) this.addToggle(key);
 
     new Setting(containerEl)
@@ -622,5 +765,37 @@ class SmartTypographySettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         });
       });
+  }
+}
+
+/** The one-time prompt on a first run: pick a style preset or keep the defaults. */
+class PresetModal extends Modal {
+  constructor(app: App, private plugin: SmartTypographyPlugin) {
+    super(app);
+  }
+
+  onOpen(): void {
+    const { contentEl } = this;
+    this.setTitle('Choose a typography style');
+    contentEl.createEl('p', {
+      text: 'Pick a starting point. You can change every switch later in the plugin settings, where these presets are also listed.',
+    });
+    for (const preset of STYLE_PRESETS) {
+      new Setting(contentEl)
+        .setName(preset.label)
+        .setDesc(preset.desc)
+        .addButton((button) =>
+          button
+            .setButtonText(preset.id === 'default' ? 'Keep default' : 'Use ' + preset.label)
+            .onClick(() => {
+              void this.plugin.applyStylePreset(preset);
+              this.close();
+            }),
+        );
+    }
+  }
+
+  onClose(): void {
+    this.contentEl.empty();
   }
 }

@@ -48,6 +48,30 @@ Each group has its own switch in settings.
 leftwards double arrow. With mathematical symbols on it gives `≤`, and
 `<==` still reaches `⇐`. With them off, `<=` gives `⇐`.
 
+## Capitals, Tab and wrapping
+
+Three more helpers, all in settings and all safe to ignore:
+
+- **Capitalize sentences** (off by default) types a capital for the first
+  letter of a line (after a list marker, task box, `>` or `#`) and after
+  `. ` `! ` `? `, closing quotes or brackets included. It stays out of code,
+  math, links, tags, paths and addresses, and after abbreviations
+  (`e.g.`, `i.e.`, `etc.`, `vs.`, `Mr.`, `Dr.`, `No.`), initials (`J. `)
+  and numbers. Backspace right after puts back the lowercase letter.
+  Words that start lowercase on purpose, such as `iPhone`, need that
+  Backspace.
+- **Tab to jump out** (on by default): with the cursor right before a
+  closing quote or `) ] } »`, Tab steps past it. In lists, tables, code,
+  math, links and with a selection, Tab keeps its usual job.
+- **Wrap a selection in quotes** (on by default): with text selected, typing
+  `"` or `'` wraps it in the convention's curly quotes instead of replacing
+  it, and one undo takes them off. Obsidian already wraps a selection in
+  brackets and Markdown marks; this adds the curly quotes.
+
+The first time the plugin loads with no saved settings it offers four style
+presets, **Default**, **Writer**, **Academic** and **Developer (quiet)**, and
+asks once. They are also in the settings tab, so you can switch later.
+
 ## Your own replacements
 
 **Your own replacements** in the settings takes one rule per line: the

@@ -128,6 +128,14 @@ export interface SmartTypographySettings {
   excludedFolders: string;
   /** The user's own rules, one `sequence -> replacement` per line. See `custom.ts`. */
   customRules: string;
+  /** Capital letter at the start of a sentence, as you type. Off by default. */
+  capitalizeSentences: boolean;
+  /** Tab moves past a closing quote or bracket right after the cursor. */
+  tabOut: boolean;
+  /** Typing a quote with text selected wraps it in curly quotes. */
+  wrapSelection: boolean;
+  /** Whether the first-run preset prompt has been shown (or was not needed). */
+  presetPrompted: boolean;
 }
 
 export const DEFAULT_SETTINGS: SmartTypographySettings = {
@@ -140,6 +148,10 @@ export const DEFAULT_SETTINGS: SmartTypographySettings = {
   skipClosingQuote: true,
   excludedFolders: '',
   customRules: '',
+  capitalizeSentences: false,
+  tabOut: true,
+  wrapSelection: true,
+  presetPrompted: false,
 };
 
 /** The convention in use, or null when quote substitution is switched off. */
