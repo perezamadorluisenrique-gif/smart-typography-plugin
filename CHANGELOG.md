@@ -4,7 +4,7 @@ The release workflow uses the section named after the version being released
 as the release description, so every version needs one. `npm version <x.y.z>`
 renames the `Unreleased` heading below to that version.
 
-## Unreleased
+## 0.5.0
 
 - Capitalize sentences (optional, off by default): the first letter of a line and of a sentence after . ! or ? is capitalised as you type, skipping code, math, links, tags, paths, abbreviations and numbers; Backspace restores the lowercase letter.
 - Tab jumps out of a closing quote or bracket (on by default), without touching Tab in lists, tables, code or with a selection.
