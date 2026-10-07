@@ -4,6 +4,13 @@ The release workflow uses the section named after the version being released
 as the release description, so every version needs one. `npm version <x.y.z>`
 renames the `Unreleased` heading below to that version.
 
+## Unreleased
+
+- Capitalize sentences (optional, off by default): the first letter of a line and of a sentence after . ! or ? is capitalised as you type, skipping code, math, links, tags, paths, abbreviations and numbers; Backspace restores the lowercase letter.
+- Tab jumps out of a closing quote or bracket (on by default), without touching Tab in lists, tables, code or with a selection.
+- Typing a quote over selected text wraps it in the convention's curly quotes, in one undo step.
+- First-run style presets (Default, Writer, Academic, Developer (quiet)), offered once to new installs and available in the settings tab.
+
 ## 0.4.0
 
 - Your own replacements: a list of "sequence -> replacement" rules in settings, such as (c) -> ©, that fire as you type, stay out of code, math, links and front matter, and come back with Backspace like the built-in ones.

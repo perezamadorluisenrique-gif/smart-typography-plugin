@@ -9,6 +9,7 @@
 import { protectedRegionAt } from './context.ts';
 import { customRulesFor, customTriggers, matchCustomRule } from './custom.ts';
 import type { CustomRule } from './custom.ts';
+import { capitalizeInsert, isLowercaseLetter, startsSentence, urlStart } from './capitalize.ts';
 import { RULES, matchRule } from './rules.ts';
 import type { RuleGroup } from './rules.ts';
 import { APOSTROPHE, conventionFor } from './settings.ts';
@@ -93,11 +94,24 @@ const TRIGGERS = new Set(['"', "'", ...'0123456789', ...RULES.map((rule) => rule
 export function mightSubstitute(typed: string, settings?: SmartTypographySettings): boolean {
   if (typed.length !== 1) return false;
   if (TRIGGERS.has(typed)) return true;
+  if (settings?.capitalizeSentences && (typed === '/' || isLowercaseLetter(typed))) return true;
   if (!settings?.customRules) return false;
   return customTriggers(customRulesFor(settings.customRules).rules).has(typed);
 }
 
 function candidateFor(
+  before: string,
+  after: string,
+  typed: string,
+  settings: SmartTypographySettings,
+): Action | null {
+  const action = ruleCandidateFor(before, after, typed, settings);
+  if (action !== null || !settings.capitalizeSentences) return action;
+  const lineBefore = before.slice(before.lastIndexOf('\n') + 1);
+  return capitalizeAction(before, after, lineBefore, typed);
+}
+
+function ruleCandidateFor(
   before: string,
   after: string,
   typed: string,
@@ -131,6 +145,41 @@ function candidateFor(
     literal: rule.literal,
     rule: rule.group,
   };
+}
+
+/** Capital letter at the start of a sentence, and the undo for a capitalised address. */
+function capitalizeAction(before: string, after: string, lineBefore: string, typed: string): Action | null {
+  const pos = before.length;
+  if (typed === '/') {
+    const at = urlStart(lineBefore);
+    if (at === null) return null;
+    const written = lineBefore.slice(at);
+    return {
+      kind: 'replace',
+      from: pos - written.length,
+      to: pos,
+      insert: 'h' + written.slice(1) + '/',
+      literal: written + '/',
+      rule: 'capitalize-url',
+    };
+  }
+  const insert = capitalizeInsert(lineBefore, after, typed);
+  if (insert === null) return null;
+  return { kind: 'replace', from: pos, to: pos, insert, literal: typed, rule: 'capitalize' };
+}
+
+/**
+ * Whether a letter typed after `lineBefore` is certainly not a sentence
+ * start, so the editor can skip copying the note for the engine.
+ */
+export function cannotCapitalize(typed: string, lineBefore: string, settings: SmartTypographySettings): boolean {
+  if (!settings.capitalizeSentences || !isLowercaseLetter(typed)) return false;
+  if (TRIGGERS.has(typed) || (settings.customRules && mightSubstituteCustom(typed, settings))) return false;
+  return !startsSentence(lineBefore);
+}
+
+function mightSubstituteCustom(typed: string, settings: SmartTypographySettings): boolean {
+  return customTriggers(customRulesFor(settings.customRules).rules).has(typed);
 }
 
 /**
