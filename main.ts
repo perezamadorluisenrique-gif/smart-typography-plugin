@@ -1,5 +1,5 @@
-import { App, Modal, Notice, Plugin, PluginSettingTab, Setting, editorInfoField } from 'obsidian';
-import type { FileManager, SettingDefinitionItem } from 'obsidian';
+import { App, FuzzySuggestModal, Modal, Notice, Plugin, PluginSettingTab, Setting, editorInfoField } from 'obsidian';
+import type { Editor, FileManager, SettingDefinitionItem, TFile } from 'obsidian';
 import { Prec, StateEffect, StateField } from '@codemirror/state';
 import type { Extension } from '@codemirror/state';
 import { EditorView, ViewPlugin, keymap } from '@codemirror/view';
@@ -11,7 +11,8 @@ import { changesBetween, typographize } from './src/apply.ts';
 import type { TextChange } from './src/apply.ts';
 import { curlComposedQuotes } from './src/compose.ts';
 import { revertFor } from './src/revert.ts';
-import { NOTE_PROPERTY, folderList, inFolder, isOff, noteIsOff, setNoteOff } from './src/scope.ts';
+import { NOTE_PROPERTY, folderList, inFolder, isOff, noteIsOff, setNoteOff, setNoteProperty } from './src/scope.ts';
+import { LANG_PROPERTY, QUOTES_PROPERTY, folderQuotesFor, settingsForNote } from './src/quotes.ts';
 import type { LastSubstitution } from './src/revert.ts';
 import { cannotCapitalize, mightSubstitute, substitutionFor } from './src/substitute.ts';
 import { STYLE_PRESETS, applyStylePreset, shouldPromptForPreset } from './src/presets.ts';
@@ -22,6 +23,7 @@ import { DEFAULT_SETTINGS, QUOTE_CONVENTIONS } from './src/settings.ts';
 import { PRESETS, addPreset, customRulesFor } from './src/custom.ts';
 import type { Preset } from './src/custom.ts';
 import type { QuoteStyleId, SmartTypographySettings } from './src/settings.ts';
+import { conventionFor } from './src/settings.ts';
 
 /**
  * How much text after the cursor the engine is shown. Only the
@@ -116,10 +118,21 @@ export default class SmartTypographyPlugin extends Plugin {
     });
 
     this.addCommand({
+      id: 'set-quotes',
+      name: 'Set quotation marks for this note…',
+      icon: 'quote',
+      editorCallback: (editor, ctx) => {
+        const file = ctx.file;
+        if (!file) return;
+        new QuotesModal(this.app, (choice) => void this.writeNoteQuotes(editor, file, choice)).open();
+      },
+    });
+
+    this.addCommand({
       id: 'apply-to-text',
       name: 'Apply typography to the selection or the whole note',
       icon: 'wand-sparkles',
-      editorCallback: (editor) => {
+      editorCallback: (editor, ctx) => {
         const text = editor.getValue();
         const ranges = editor.somethingSelected()
           ? editor.listSelections().map((s) => {
@@ -129,9 +142,10 @@ export default class SmartTypographyPlugin extends Plugin {
             })
           : [[0, text.length]];
         const changes: TextChange[] = [];
+        const settings = this.settingsFor(ctx.file);
         for (const [from, to] of ranges) {
           const original = text.slice(from, to);
-          const result = typographize(original, this.settings, text.slice(0, from));
+          const result = typographize(original, settings, text.slice(0, from));
           changes.push(...changesBetween(original, result, from));
         }
         if (changes.length === 0) {
@@ -145,6 +159,56 @@ export default class SmartTypographyPlugin extends Plugin {
         new Notice(`Typography: changed ${changes.length} ${changes.length === 1 ? 'line' : 'lines'}.`);
       },
     });
+  }
+
+  /** Writes (or, for null, removes) the note's `typography-quotes` property. */
+  private async writeNoteQuotes(
+    editor: Editor,
+    file: TFile,
+    choice: QuoteStyleId | null,
+  ): Promise<void> {
+    // Same pattern as the on/off command: processFrontMatter where the app
+    // has it (1.4.4), a text edit of the front matter on older apps.
+    const fileManager = this.app.fileManager as { processFrontMatter?: FileManager['processFrontMatter'] };
+    if (typeof fileManager.processFrontMatter === 'function') {
+      await fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
+        if (choice === null) delete frontmatter[QUOTES_PROPERTY];
+        else frontmatter[QUOTES_PROPERTY] = choice;
+      });
+    } else {
+      const edit = setNoteProperty(editor.getValue(), QUOTES_PROPERTY, choice);
+      if (edit) {
+        editor.transaction({
+          changes: [{ from: editor.offsetToPos(edit.from), to: editor.offsetToPos(edit.to), text: edit.insert }],
+        });
+      }
+    }
+    const style = settingsForNote({ path: file.path, quotes: choice, lang: undefined }, this.settings);
+    new Notice(
+      choice === null
+        ? 'Typography: this note follows your folder and global quotation marks again.'
+        : `Typography: quotation marks in this note are now ${conventionFor(style.quoteStyle)?.label ?? 'straight'}.`,
+    );
+  }
+
+  /**
+   * The settings for one note: the global ones with the quotation marks
+   * its property, language or folder asks for. The properties are read from
+   * the metadata cache, a lookup, like the `typography` property.
+   */
+  private settingsFor(file: TFile | null | undefined): SmartTypographySettings {
+    const settings = this.settings;
+    if (!file) return settings;
+    const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
+    return settingsForNote(
+      { path: file.path, quotes: frontmatter?.[QUOTES_PROPERTY], lang: frontmatter?.[LANG_PROPERTY] },
+      settings,
+    );
+  }
+
+  /** `settingsFor` for the note in an editor. */
+  private settingsForState(state: EditorState): SmartTypographySettings {
+    return this.settingsFor(state.field(editorInfoField, false)?.file);
   }
 
   /**
@@ -215,7 +279,7 @@ export default class SmartTypographyPlugin extends Plugin {
    * quote is typed.
    */
   private composedQuotes(): Extension {
-    const settings = () => this.settings;
+    const settings = (state: EditorState) => this.settingsForState(state);
     const leftAlone = (state: EditorState) => this.leftAlone(state);
 
     return ViewPlugin.fromClass(
@@ -277,7 +341,7 @@ export default class SmartTypographyPlugin extends Plugin {
             state.doc.sliceString(0, Math.min(state.doc.length, to + LOOKAHEAD)),
             from,
             to,
-            settings(),
+            settings(state),
           );
           if (changes.length > 0) view.dispatch({ changes, userEvent: 'input.type' });
         }
@@ -321,7 +385,7 @@ export default class SmartTypographyPlugin extends Plugin {
       state.doc.sliceString(0, from),
       state.doc.sliceString(from, Math.min(from + LOOKAHEAD, state.doc.length)),
       text,
-      this.settings,
+      this.settingsForState(state),
     );
     if (action === null) return false;
 
@@ -357,8 +421,9 @@ export default class SmartTypographyPlugin extends Plugin {
     const main = state.selection.main;
     if (state.selection.ranges.length !== 1 || main.from !== from || main.to !== to) return false;
     if (view.compositionStarted || view.composing) return false;
-    const wrap = wrapFor(text, this.settings);
-    if (wrap === null || this.leftAlone(state)) return false;
+    if (!this.settings.wrapSelection || this.leftAlone(state)) return false;
+    const wrap = wrapFor(text, this.settingsForState(state));
+    if (wrap === null) return false;
     // Not inside code, math, a link target or front matter: there a quote is
     // just a quote, and the default replace-the-selection behaviour stays.
     if (protectedRegionAt(state.doc.sliceString(0, from)) !== null) return false;
@@ -390,7 +455,7 @@ export default class SmartTypographyPlugin extends Plugin {
     const target = tabOutTarget(
       state.doc.sliceString(0, head),
       state.doc.sliceString(head, line.to),
-      this.settings,
+      this.settingsForState(state),
     );
     if (target === null) return false;
     view.dispatch({ selection: { anchor: target }, userEvent: 'move.character', scrollIntoView: true });
@@ -477,6 +542,20 @@ const SETTING_TEXT: Record<Exclude<keyof SmartTypographySettings, 'presetPrompte
       'Templates/Raw). A single note can opt out with the property "typography: off", or the command ' +
       '"Turn substitutions off or on in this note".',
   },
+  useLangProperty: {
+    name: "Use the note's lang property",
+    desc:
+      'A note with a property such as "lang: de" gets that language\'s quotation marks (English, German, French, ' +
+      'Spanish, Swedish, Polish, Russian), unless it has its own "typography-quotes". Off by default, because ' +
+      'notes you already have may carry a lang property.',
+  },
+  quotesByFolder: {
+    name: 'Quotes per folder',
+    desc:
+      'One folder per line, then " -> ", then the convention: Deutsch -> german. The most specific folder wins. ' +
+      'A note\'s "lang" property (if the switch above is on) and its "typography-quotes" property beat the folder. ' +
+      'Conventions: english, german, french, spanish, swedish, polish, russian, or off for straight quotes.',
+  },
   customRules: {
     name: 'Your own replacements',
     desc:
@@ -489,6 +568,9 @@ const SETTING_TEXT: Record<Exclude<keyof SmartTypographySettings, 'presetPrompte
 
 /** The row under the custom rules that says which lines are not used. */
 const CUSTOM_STATUS = { name: 'Rules in use' };
+
+/** The row under the quotes per folder that says which lines are not used. */
+const FOLDER_STATUS = { name: 'Folders in use' };
 
 /** The row with the preset buttons. */
 const PRESET_TEXT = {
@@ -517,6 +599,7 @@ const TOGGLE_KEYS = [
   'capitalizeSentences',
   'tabOut',
   'wrapSelection',
+  'useLangProperty',
 ] as const;
 
 /** The row with the style preset buttons. */
@@ -574,6 +657,27 @@ class SmartTypographySettingTab extends PluginSettingTab {
         },
       },
       {
+        ...SETTING_TEXT.quotesByFolder,
+        control: {
+          type: 'textarea' as const,
+          key: 'quotesByFolder',
+          placeholder: 'Deutsch -> german\nFrance/Notes -> french',
+          rows: 3,
+          defaultValue: DEFAULT_SETTINGS.quotesByFolder,
+        },
+      },
+      {
+        ...FOLDER_STATUS,
+        searchable: false,
+        render: (setting: Setting) => {
+          this.folderStatusEl = setting.descEl;
+          this.showFolderStatus();
+          return () => {
+            this.folderStatusEl = null;
+          };
+        },
+      },
+      {
         ...SETTING_TEXT.customRules,
         control: {
           type: 'textarea' as const,
@@ -606,6 +710,28 @@ class SmartTypographySettingTab extends PluginSettingTab {
 
   /** Where the custom rules' status is written, while the tab is open. */
   private statusEl: HTMLElement | null = null;
+
+  private folderStatusEl: HTMLElement | null = null;
+
+  /** Says how many folder lines are in use and which are ignored, and why. */
+  private showFolderStatus(): void {
+    const el = this.folderStatusEl;
+    if (!el) return;
+    el.empty();
+    const { folders, ignored } = folderQuotesFor(this.plugin.settings.quotesByFolder);
+    el.createDiv({
+      text:
+        folders.length === 0
+          ? 'No folders yet.'
+          : `${folders.length} ${folders.length === 1 ? 'folder' : 'folders'} in use.`,
+    });
+    for (const item of ignored) {
+      el.createDiv({
+        cls: 'mod-warning',
+        text: `Ignored, line ${item.line} (${item.text.trim()}): ${item.reason}.`,
+      });
+    }
+  }
 
   /** Set once Obsidian has drawn the tab through `display()`, which it does only before 1.13. */
   private legacy = false;
@@ -687,6 +813,7 @@ class SmartTypographySettingTab extends PluginSettingTab {
     Object.assign(this.plugin.settings, { [key]: value });
     await this.plugin.saveSettings();
     if (key === 'customRules') this.showStatus();
+    if (key === 'quotesByFolder') this.showFolderStatus();
   }
 
   /**
@@ -729,6 +856,22 @@ class SmartTypographySettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         });
       });
+
+    new Setting(containerEl)
+      .setName(SETTING_TEXT.quotesByFolder.name)
+      .setDesc(SETTING_TEXT.quotesByFolder.desc)
+      .addTextArea((area) => {
+        area.setValue(this.plugin.settings.quotesByFolder);
+        area.onChange(async (value) => {
+          this.plugin.settings.quotesByFolder = value;
+          await this.plugin.saveSettings();
+          this.showFolderStatus();
+        });
+      });
+
+    const folderStatus = new Setting(containerEl).setName(FOLDER_STATUS.name);
+    this.folderStatusEl = folderStatus.descEl;
+    this.showFolderStatus();
 
     new Setting(containerEl)
       .setName(SETTING_TEXT.customRules.name)
@@ -797,5 +940,38 @@ class PresetModal extends Modal {
 
   onClose(): void {
     this.contentEl.empty();
+  }
+}
+
+/** What the picker offers: a convention, or null to remove the property. */
+interface QuotesChoice {
+  label: string;
+  value: QuoteStyleId | null;
+}
+
+/** The picker behind "Set quotation marks for this note…". */
+class QuotesModal extends FuzzySuggestModal<QuotesChoice> {
+  constructor(
+    app: App,
+    private onChoose: (choice: QuoteStyleId | null) => void,
+  ) {
+    super(app);
+    this.setPlaceholder('Quotation marks for this note');
+  }
+
+  getItems(): QuotesChoice[] {
+    return [
+      { label: 'Follow the folder and global setting (remove the property)', value: null },
+      ...QUOTE_CONVENTIONS.map((c) => ({ label: c.label, value: c.id })),
+      { label: 'Straight quotes (off)', value: 'off' as const },
+    ];
+  }
+
+  getItemText(item: QuotesChoice): string {
+    return item.label;
+  }
+
+  onChooseItem(item: QuotesChoice): void {
+    this.onChoose(item.value);
   }
 }

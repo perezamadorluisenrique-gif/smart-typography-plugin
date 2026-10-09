@@ -103,3 +103,44 @@ export function setNoteOff(text: string, off: boolean): TextEdit | null {
   }
   return null;
 }
+
+/**
+ * The edit that sets the front matter property `name` to the plain word
+ * `value`, or removes it when `value` is null: the text-edit fallback for
+ * apps without `processFrontMatter`. Null when there is nothing to change.
+ * `name` and `value` are fixed words of this plugin, never user text.
+ */
+export function setNoteProperty(text: string, name: string, value: string | null): TextEdit | null {
+  const fm = frontMatter(text);
+  const wanted = `${name}: ${value}`;
+  const own = new RegExp(`^${name}[ \\t]*:.*$`);
+
+  if (value !== null) {
+    if (!fm) return { from: 0, to: 0, insert: `---\n${wanted}\n---\n` };
+    let at = fm.bodyFrom;
+    while (at < fm.closeFrom) {
+      const end = text.indexOf('\n', at);
+      const line = text.slice(at, end).replace(/\r$/, '');
+      if (own.test(line)) return line === wanted ? null : { from: at, to: at + line.length, insert: wanted };
+      at = end + 1;
+    }
+    return { from: fm.closeFrom, to: fm.closeFrom, insert: `${wanted}\n` };
+  }
+
+  if (!fm) return null;
+  let at = fm.bodyFrom;
+  while (at < fm.closeFrom) {
+    const end = text.indexOf('\n', at);
+    const line = text.slice(at, end).replace(/\r$/, '');
+    if (own.test(line)) {
+      const others = text.slice(fm.bodyFrom, at) + text.slice(end + 1, fm.closeFrom);
+      if (others.trim() === '') {
+        const close = text.indexOf('\n', fm.closeFrom);
+        return { from: 0, to: close === -1 ? text.length : close + 1, insert: '' };
+      }
+      return { from: at, to: end + 1, insert: '' };
+    }
+    at = end + 1;
+  }
+  return null;
+}
