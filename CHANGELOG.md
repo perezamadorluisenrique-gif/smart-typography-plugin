@@ -4,6 +4,11 @@ The release workflow uses the section named after the version being released
 as the release description, so every version needs one. `npm version <x.y.z>`
 renames the `Unreleased` heading below to that version.
 
+## Unreleased
+
+- Quotation marks per note and per folder: the `typography-quotes` property, an optional `lang` property switch (off by default) and a "Quotes per folder" setting choose the convention, and the command "Set quotation marks for this note…" writes the property.
+- Typing, step-over, wrapping, Backspace and "Apply typography" all use the note's own convention.
+
 ## 0.5.0
 
 - Capitalize sentences (optional, off by default): the first letter of a line and of a sentence after . ! or ? is capitalised as you type, skipping code, math, links, tags, paths, abbreviations and numbers; Backspace restores the lowercase letter.

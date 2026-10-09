@@ -134,6 +134,10 @@ export interface SmartTypographySettings {
   tabOut: boolean;
   /** Typing a quote with text selected wraps it in curly quotes. */
   wrapSelection: boolean;
+  /** Folders with their own quote convention, one `folder -> convention` per line. See `quotes.ts`. */
+  quotesByFolder: string;
+  /** A note's `lang` property picks its quote convention when it has no `typography-quotes`. */
+  useLangProperty: boolean;
   /** Whether the first-run preset prompt has been shown (or was not needed). */
   presetPrompted: boolean;
 }
@@ -151,6 +155,8 @@ export const DEFAULT_SETTINGS: SmartTypographySettings = {
   capitalizeSentences: false,
   tabOut: true,
   wrapSelection: true,
+  quotesByFolder: '',
+  useLangProperty: false,
   presetPrompted: false,
 };
 

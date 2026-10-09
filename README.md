@@ -188,6 +188,29 @@ links, front matter and HTML tags are left alone, your quotation style and the
 groups you switched off are respected, and text that is already typeset is not
 touched again. The change is one step in the undo history.
 
+## Different quotation marks for different notes
+
+If you write in more than one language, the quotation marks can follow the
+note instead of one global setting. Each note gets the first of these that
+applies:
+
+1. **The note's `typography-quotes` property**, for example
+   `typography-quotes: german`. It takes the convention names (`english`,
+   `german`, `french`, `spanish`, `swedish`, `polish`, `russian`), readable
+   names such as `Deutsch`, language codes such as `de` or `fr-CA`, and `off`
+   for straight quotes. The command *Set quotation marks for this note…*
+   offers the list and writes the property for you.
+2. **The note's `lang` property**, if you turn on *Use the note's lang
+   property* (off by default, since your notes may already carry a `lang`).
+3. **Quotes per folder** in the settings: one `folder -> convention` per line,
+   such as `Deutsch -> german`. The most specific folder wins.
+4. **The quotation marks setting**, as before.
+
+A value that names no convention is skipped, so a typo never changes your
+quotes. Typing, stepping over a closing quote, wrapping a selection, taking a
+substitution back with Backspace and *Apply typography to the selection or the
+whole note* all use the note's own convention.
+
 ## Turning it off for a folder or a note
 
 - **Excluded folders** in the settings takes one folder per line. Nothing is
