@@ -24,8 +24,27 @@ export type Region =
   | 'html-tag'
   | 'url';
 
-/** A fenced block, ``` or ~~~, possibly indented by up to three spaces. */
-const FENCE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
+/**
+ * A fenced block, ``` or ~~~: indented, inside a quote or callout (`> `),
+ * or opening a list item (`- `). The first group is the quote markers.
+ */
+const FENCE = /^((?:[ \t]*>[ \t]?)*)[ \t]*(?:(?:[-*+]|\d{1,9}[.)])[ \t]+)?(`{3,}|~{3,})(.*)$/;
+
+/** How many quote or callout levels a line sits in: two for `> > text`. */
+function quoteDepth(line: string): number {
+  const markers = /^(?:[ \t]*>[ \t]?)*/.exec(line)?.[0] ?? '';
+  return markers.split('>').length - 1;
+}
+
+/**
+ * Whether `line` is a fence line: the opening or closing line of a code
+ * block, which holds a language name rather than prose. A backtick fence
+ * whose info string has a backtick in it is inline code, not a fence.
+ */
+function isFenceLine(line: string): boolean {
+  const m = FENCE.exec(line);
+  return m !== null && !(m[2][0] === '`' && m[3].includes('`'));
+}
 
 /**
  * The start of an HTML tag, `<span` or `</div`: a `<`, an optional `/`, and
@@ -50,6 +69,7 @@ export function protectedRegionAt(text: string): Region | null {
   const lineStart = text.lastIndexOf('\n') + 1;
   const block = blockStateAt(text, lineStart);
   if (block.region) return block.region;
+  if (block.openSpan === null && isFenceLine(text.slice(lineStart))) return 'code-block';
 
   let line = text.slice(lineStart);
   // A Templater block or an HTML comment opened on an earlier line: the
@@ -80,10 +100,14 @@ interface BlockState {
  * a quote curled inside it breaks the template.
  */
 function blockStateAt(text: string, lineStart: number): BlockState {
+  // Every line before the cursor's; the split leaves an empty piece after
+  // the last line break, which is the cursor's line, not one before it.
   const lines = text.slice(0, lineStart).split('\n');
+  lines.pop();
 
   let inFrontmatter = lines.length > 0 && lines[0] === '---';
   let fence: string | null = null;
+  let fenceDepth = 0;
   let inMathBlock = false;
   let openSpan: SpanCloser | null = null;
 
@@ -103,16 +127,27 @@ function blockStateAt(text: string, lineStart: number): BlockState {
     }
     if (inFrontmatter) continue;
 
-    const fenceMatch = FENCE.exec(line);
+    // A block opened inside a quote or callout ends with it, closed or not.
+    if (fence !== null && quoteDepth(line) < fenceDepth) fence = null;
+
+    const fenceMatch = isFenceLine(line) ? FENCE.exec(line) : null;
     if (fenceMatch) {
-      const marker = fenceMatch[1];
+      const marker = fenceMatch[2];
       if (fence === null) {
         fence = marker;
+        fenceDepth = quoteDepth(line);
         continue;
       }
       // A closing fence uses the same character, is at least as long, and
       // carries no info string.
-      if (marker[0] === fence[0] && marker.length >= fence.length && fenceMatch[2].trim() === '') {
+      // It also sits at the depth the block opened at: a `> ```` line inside
+      // a block opened outside any quote is part of its code.
+      if (
+        marker[0] === fence[0] &&
+        marker.length >= fence.length &&
+        fenceMatch[3].trim() === '' &&
+        quoteDepth(line) === fenceDepth
+      ) {
         fence = null;
       }
       continue;

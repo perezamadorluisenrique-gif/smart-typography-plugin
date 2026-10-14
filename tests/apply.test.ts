@@ -66,3 +66,12 @@ test('changes are per line and minimal', () => {
   assert.deepEqual(changesBetween('a--b', 'a–b', 10), [{ from: 11, to: 13, insert: '–' }]);
   assert.deepEqual(changesBetween('same', 'same'), []);
 });
+
+test('code inside a callout is left alone', () => {
+  const note = '> [!tip]\n> "Quoted" text...\n> ```css\n> a { content: "x" -- 1; }\n> ```';
+  assert.equal(t(note), '> [!tip]\n> “Quoted” text…\n> ```css\n> a { content: "x" -- 1; }\n> ```');
+});
+
+test('the end of an HTML comment survives a following = or >', () => {
+  assert.equal(t('<!-- c -->= and <!-- d -->>'), '<!-- c -->= and <!-- d -->>');
+});
