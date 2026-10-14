@@ -4,7 +4,7 @@ The release workflow uses the section named after the version being released
 as the release description, so every version needs one. `npm version <x.y.z>`
 renames the `Unreleased` heading below to that version.
 
-## Unreleased
+## 0.7.2
 
 - On Obsidian 1.3, a quote typed through a keyboard that composes it (dead keys on Linux, Gboard on Android) no longer comes out doubled, as in ““hi”.
 - "Apply typography" shows its icon on the mobile toolbar in Obsidian versions before 1.7.
