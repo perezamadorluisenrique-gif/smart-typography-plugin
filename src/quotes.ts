@@ -13,6 +13,7 @@
  * a typo never switches quotes off or changes them to something unexpected.
  */
 
+import { t } from './i18n.ts';
 import { folderList } from './scope.ts';
 import { QUOTE_CONVENTIONS } from './settings.ts';
 import type { QuoteStyleId, SmartTypographySettings } from './settings.ts';
@@ -97,17 +98,17 @@ export function folderQuotesFor(setting: string): { folders: FolderQuote[]; igno
     const line = index + 1;
     const at = text.lastIndexOf('->');
     if (at === -1) {
-      ignored.push({ line, text, reason: 'write the folder, then " -> ", then the convention' });
+      ignored.push({ line, text, reason: t('reason.folderFormat') });
       return;
     }
     const folder = folderList(text.slice(0, at))[0];
     if (folder === undefined) {
-      ignored.push({ line, text, reason: 'no folder before "->"' });
+      ignored.push({ line, text, reason: t('reason.noFolder') });
       return;
     }
     const style = parseConvention(text.slice(at + 2));
     if (style === null) {
-      ignored.push({ line, text, reason: 'unknown convention' });
+      ignored.push({ line, text, reason: t('reason.unknownConvention') });
       return;
     }
     folders.push({ folder, style });

@@ -24,6 +24,7 @@ import { PRESETS, addPreset, customRulesFor } from './src/custom.ts';
 import type { Preset } from './src/custom.ts';
 import type { QuoteStyleId, SmartTypographySettings } from './src/settings.ts';
 import { conventionFor } from './src/settings.ts';
+import { t } from './src/i18n.ts';
 
 /**
  * How much text after the cursor the engine is shown. Only the
@@ -82,7 +83,7 @@ export default class SmartTypographyPlugin extends Plugin {
 
     this.addCommand({
       id: 'toggle-note',
-      name: 'Turn substitutions off or on in this note',
+      name: t('command.toggleNote'),
       icon: 'toggle-right',
       editorCallback: async (editor, ctx) => {
         const text = editor.getValue();
@@ -109,17 +110,17 @@ export default class SmartTypographyPlugin extends Plugin {
         const folder = ctx.file && inFolder(ctx.file.path, folderList(this.settings.excludedFolders));
         new Notice(
           off
-            ? 'Typography: substitutions are off in this note.'
+            ? t('notice.substitutionsOff')
             : folder
-              ? 'Typography: removed the property, but this note is in an excluded folder, so substitutions stay off.'
-              : 'Typography: substitutions are on in this note.',
+              ? t('notice.removedButExcluded')
+              : t('notice.substitutionsOn'),
         );
       },
     });
 
     this.addCommand({
       id: 'set-quotes',
-      name: 'Set quotation marks for this note…',
+      name: t('command.setQuotes'),
       icon: 'quote',
       editorCallback: (editor, ctx) => {
         const file = ctx.file;
@@ -130,7 +131,7 @@ export default class SmartTypographyPlugin extends Plugin {
 
     this.addCommand({
       id: 'apply-to-text',
-      name: 'Apply typography to the selection or the whole note',
+      name: t('command.applyToText'),
       icon: 'wand-sparkles',
       editorCallback: (editor, ctx) => {
         const text = editor.getValue();
@@ -149,14 +150,14 @@ export default class SmartTypographyPlugin extends Plugin {
           changes.push(...changesBetween(original, result, from));
         }
         if (changes.length === 0) {
-          new Notice('Typography: nothing to change.');
+          new Notice(t('notice.nothingToChange'));
           return;
         }
         // One transaction, so a single undo puts everything back.
         editor.transaction({
           changes: changes.map((c) => ({ from: editor.offsetToPos(c.from), to: editor.offsetToPos(c.to), text: c.insert })),
         });
-        new Notice(`Typography: changed ${changes.length} ${changes.length === 1 ? 'line' : 'lines'}.`);
+        new Notice(changes.length === 1 ? t('notice.changedLines.one') : t('notice.changedLines.other', { count: changes.length }));
       },
     });
   }
@@ -184,10 +185,13 @@ export default class SmartTypographyPlugin extends Plugin {
       }
     }
     const style = settingsForNote({ path: file.path, quotes: choice, lang: undefined }, this.settings);
+    const convention = conventionFor(style.quoteStyle);
     new Notice(
       choice === null
-        ? 'Typography: this note follows your folder and global quotation marks again.'
-        : `Typography: quotation marks in this note are now ${conventionFor(style.quoteStyle)?.label ?? 'straight'}.`,
+        ? t('notice.quotesFollowFolder')
+        : convention
+          ? t('notice.quotesSet', { style: convention.label })
+          : t('notice.quotesStraight'),
     );
   }
 
@@ -481,112 +485,34 @@ export default class SmartTypographyPlugin extends Plugin {
 
 /** The quote dropdown's options, off first. */
 function quoteStyleOptions(): Record<string, string> {
-  const options: Record<string, string> = { off: 'Leave straight quotes alone' };
+  const options: Record<string, string> = { off: t('convention.off') };
   for (const convention of QUOTE_CONVENTIONS) options[convention.id] = convention.label;
   return options;
 }
 
+/** Which settings have a name and a description of their own in the locale files. */
+type TextKey = Exclude<keyof SmartTypographySettings, 'presetPrompted'>;
+
 /**
  * Each setting's name and description, written once. The declarative
  * definitions below and the `display()` fallback both read from here, so the
- * two renderings cannot drift apart.
+ * two renderings cannot drift apart. Read when the tab is drawn, not at load.
  */
-const SETTING_TEXT: Record<Exclude<keyof SmartTypographySettings, 'presetPrompted'>, { name: string; desc: string }> = {
-  quoteStyle: {
-    name: 'Quotation marks',
-    desc:
-      'Which convention straight quotes are turned into. Apostrophes are ' +
-      'the same character in every convention and are set separately.',
-  },
-  smartApostrophes: {
-    name: 'Apostrophes',
-    desc: "it's becomes it’s. Works whether or not quotation marks are set.",
-  },
-  skipClosingQuote: {
-    name: 'Step over a closing quote',
-    desc:
-      'Typing a closing quote where one already sits moves the cursor past ' +
-      'it instead of adding a second one.',
-  },
-  capitalizeSentences: {
-    name: 'Capitalize sentences',
-    desc:
-      'Types a capital for the first letter of a line or of a sentence after . ! or ?. It keeps out of code, ' +
-      'links, tags and paths, and after abbreviations such as Mr., e.g. or etc. Backspace right after puts back ' +
-      'the lowercase letter.',
-  },
-  tabOut: {
-    name: 'Tab to jump out',
-    desc:
-      'With the cursor right before a closing quote or bracket, Tab moves past it. Tab still indents in lists ' +
-      'and moves between cells in tables.',
-  },
-  wrapSelection: {
-    name: 'Wrap a selection in quotes',
-    desc: 'With text selected, typing a quote puts curly quotes around it instead of replacing it.',
-  },
-  dashes: { name: 'Dashes', desc: '-- becomes – and --- becomes —.' },
-  ellipsis: { name: 'Ellipsis', desc: '... becomes ….' },
-  arrows: {
-    name: 'Arrows',
-    desc: '-> becomes →, <- becomes ←, <-> becomes ↔, => becomes ⇒.',
-  },
-  mathSymbols: {
-    name: 'Mathematical symbols',
-    desc: '>= becomes ≥, <= becomes ≤, != becomes ≠, +- becomes ±.',
-  },
-  excludedFolders: {
-    name: 'Excluded folders',
-    desc:
-      'Nothing is substituted in notes inside these folders, one folder per line (for example Code or ' +
-      'Templates/Raw). A single note can opt out with the property "typography: off", or the command ' +
-      '"Turn substitutions off or on in this note".',
-  },
-  useLangProperty: {
-    name: "Use the note's lang property",
-    desc:
-      'A note with a property such as "lang: de" gets that language\'s quotation marks (English, German, French, ' +
-      'Spanish, Swedish, Polish, Russian), unless it has its own "typography-quotes". Off by default, because ' +
-      'notes you already have may carry a lang property.',
-  },
-  quotesByFolder: {
-    name: 'Quotes per folder',
-    desc:
-      'One folder per line, then " -> ", then the convention: Deutsch -> german. The most specific folder wins. ' +
-      'A note\'s "lang" property (if the switch above is on) and its "typography-quotes" property beat the folder. ' +
-      'Conventions: english, german, french, spanish, swedish, polish, russian, or off for straight quotes.',
-  },
-  customRules: {
-    name: 'Your own replacements',
-    desc:
-      'One rule per line, the characters you type, then " -> ", then what they become: (c) -> ©. A rule ' +
-      'fires as you type the last character of its sequence, in the same places as the rules above, and ' +
-      'Backspace straight after puts back what you typed. The rules above go first: a sequence they also ' +
-      'handle only uses yours while their switch is off. A sequence needs at least two characters.',
-  },
-};
+function settingText(key: TextKey): { name: string; desc: string } {
+  return { name: t(`setting.${key}.name`), desc: t(`setting.${key}.desc`) };
+}
 
 /** The row under the custom rules that says which lines are not used. */
-const CUSTOM_STATUS = { name: 'Rules in use' };
+const customStatusText = () => ({ name: t('setting.rulesStatus.name') });
 
 /** The row under the quotes per folder that says which lines are not used. */
-const FOLDER_STATUS = { name: 'Folders in use' };
+const folderStatusText = () => ({ name: t('setting.folderStatus.name') });
 
 /** The row with the preset buttons. */
-const PRESET_TEXT = {
-  name: 'Add a preset',
-  desc: 'Adds a ready-made set of rules to your list; rules already in it are left alone. ' +
-    '>> is never replaced at the start of a line, where it opens a nested quote.',
-};
+const presetText = () => ({ name: t('setting.rulePreset.name'), desc: t('setting.rulePreset.desc') });
 
 /** The note under the settings, explaining where the plugin keeps out. */
-const KEEPS_OUT_NOTE = {
-  name: 'Where nothing is substituted',
-  desc:
-    'Code blocks, inline code, formulas, link targets, frontmatter, HTML ' +
-    'tags and comments, and Templater expressions are left exactly as typed. ' +
-    'Backspace straight after a substitution puts back what you typed.',
-};
+const keepsOutNote = () => ({ name: t('setting.keepsOut.name'), desc: t('setting.keepsOut.desc') });
 
 /** The toggles, in the order they are shown. */
 const TOGGLE_KEYS = [
@@ -603,12 +529,7 @@ const TOGGLE_KEYS = [
 ] as const;
 
 /** The row with the style preset buttons. */
-const STYLE_PRESET_TEXT = {
-  name: 'Style preset',
-  desc:
-    'Sets the switches above in one go: Writer, Academic, Developer (quiet) or Default. Your folders, ' +
-    'quote style (except Developer) and own replacements are kept.',
-};
+const stylePresetText = () => ({ name: t('setting.stylePreset.name'), desc: t('setting.stylePreset.desc') });
 
 class SmartTypographySettingTab extends PluginSettingTab {
   constructor(app: App, private plugin: SmartTypographyPlugin) {
@@ -625,7 +546,7 @@ class SmartTypographySettingTab extends PluginSettingTab {
   getSettingDefinitions(): SettingDefinitionItem[] {
     return [
       {
-        ...SETTING_TEXT.quoteStyle,
+        ...settingText('quoteStyle'),
         control: {
           type: 'dropdown',
           key: 'quoteStyle',
@@ -634,12 +555,12 @@ class SmartTypographySettingTab extends PluginSettingTab {
         },
       },
       {
-        ...STYLE_PRESET_TEXT,
+        ...stylePresetText(),
         searchable: true,
         render: (setting: Setting) => this.stylePresetButtons(setting),
       },
       ...TOGGLE_KEYS.map((key) => ({
-        ...SETTING_TEXT[key],
+        ...settingText(key),
         control: {
           type: 'toggle' as const,
           key,
@@ -647,7 +568,7 @@ class SmartTypographySettingTab extends PluginSettingTab {
         },
       })),
       {
-        ...SETTING_TEXT.excludedFolders,
+        ...settingText('excludedFolders'),
         control: {
           type: 'textarea' as const,
           key: 'excludedFolders',
@@ -657,7 +578,7 @@ class SmartTypographySettingTab extends PluginSettingTab {
         },
       },
       {
-        ...SETTING_TEXT.quotesByFolder,
+        ...settingText('quotesByFolder'),
         control: {
           type: 'textarea' as const,
           key: 'quotesByFolder',
@@ -667,7 +588,7 @@ class SmartTypographySettingTab extends PluginSettingTab {
         },
       },
       {
-        ...FOLDER_STATUS,
+        ...folderStatusText(),
         searchable: false,
         render: (setting: Setting) => {
           this.folderStatusEl = setting.descEl;
@@ -678,7 +599,7 @@ class SmartTypographySettingTab extends PluginSettingTab {
         },
       },
       {
-        ...SETTING_TEXT.customRules,
+        ...settingText('customRules'),
         control: {
           type: 'textarea' as const,
           key: 'customRules',
@@ -688,7 +609,7 @@ class SmartTypographySettingTab extends PluginSettingTab {
         },
       },
       {
-        ...CUSTOM_STATUS,
+        ...customStatusText(),
         searchable: false,
         render: (setting: Setting) => {
           this.statusEl = setting.descEl;
@@ -699,12 +620,12 @@ class SmartTypographySettingTab extends PluginSettingTab {
         },
       },
       {
-        ...PRESET_TEXT,
+        ...presetText(),
         render: (setting: Setting) => this.presetButtons(setting),
       },
       // No control: a row that is only an explanation, which also puts the
       // sentence in the settings search.
-      KEEPS_OUT_NOTE,
+      keepsOutNote(),
     ];
   }
 
@@ -722,13 +643,15 @@ class SmartTypographySettingTab extends PluginSettingTab {
     el.createDiv({
       text:
         folders.length === 0
-          ? 'No folders yet.'
-          : `${folders.length} ${folders.length === 1 ? 'folder' : 'folders'} in use.`,
+          ? t('status.noFolders')
+          : folders.length === 1
+            ? t('status.folders.one')
+            : t('status.folders.other', { count: folders.length }),
     });
     for (const item of ignored) {
       el.createDiv({
         cls: 'mod-warning',
-        text: `Ignored, line ${item.line} (${item.text.trim()}): ${item.reason}.`,
+        text: t('status.ignored', { line: item.line, text: item.text.trim(), reason: item.reason }),
       });
     }
   }
@@ -745,13 +668,15 @@ class SmartTypographySettingTab extends PluginSettingTab {
     el.createDiv({
       text:
         rules.length === 0
-          ? 'No rules yet.'
-          : `${rules.length} ${rules.length === 1 ? 'rule' : 'rules'} in use.`,
+          ? t('status.noRules')
+          : rules.length === 1
+            ? t('status.rules.one')
+            : t('status.rules.other', { count: rules.length }),
     });
     for (const item of ignored) {
       el.createDiv({
         cls: 'mod-warning',
-        text: `Ignored, line ${item.line} (${item.text.trim()}): ${item.reason}.`,
+        text: t('status.ignored', { line: item.line, text: item.text.trim(), reason: item.reason }),
       });
     }
   }
@@ -766,7 +691,7 @@ class SmartTypographySettingTab extends PluginSettingTab {
 
   private async applyStyle(preset: StylePreset): Promise<void> {
     await this.plugin.applyStylePreset(preset);
-    new Notice(`Typography: ${preset.label} preset applied.`);
+    new Notice(t('notice.presetApplied', { preset: preset.label }));
     if (this.legacy) {
       this.display();
       return;
@@ -786,12 +711,12 @@ class SmartTypographySettingTab extends PluginSettingTab {
   private async addPreset(preset: Preset): Promise<void> {
     const { setting, added } = addPreset(this.plugin.settings.customRules, preset);
     if (added === 0) {
-      new Notice('Typography: those rules are already in your list.');
+      new Notice(t('notice.presetRulesPresent'));
       return;
     }
     this.plugin.settings.customRules = setting;
     await this.plugin.saveSettings();
-    new Notice(`Typography: added ${added} ${added === 1 ? 'rule' : 'rules'}.`);
+    new Notice(added === 1 ? t('notice.rulesAdded.one') : t('notice.rulesAdded.other', { count: added }));
     // Draws the tab again so the text area shows the new lines.
     if (this.legacy) {
       this.display();
@@ -827,8 +752,8 @@ class SmartTypographySettingTab extends PluginSettingTab {
     containerEl.empty();
 
     new Setting(containerEl)
-      .setName(SETTING_TEXT.quoteStyle.name)
-      .setDesc(SETTING_TEXT.quoteStyle.desc)
+      .setName(settingText('quoteStyle').name)
+      .setDesc(settingText('quoteStyle').desc)
       .addDropdown((dropdown) => {
         for (const [value, label] of Object.entries(quoteStyleOptions())) {
           dropdown.addOption(value, label);
@@ -841,14 +766,14 @@ class SmartTypographySettingTab extends PluginSettingTab {
       });
 
     this.stylePresetButtons(
-      new Setting(containerEl).setName(STYLE_PRESET_TEXT.name).setDesc(STYLE_PRESET_TEXT.desc),
+      new Setting(containerEl).setName(stylePresetText().name).setDesc(stylePresetText().desc),
     );
 
     for (const key of TOGGLE_KEYS) this.addToggle(key);
 
     new Setting(containerEl)
-      .setName(SETTING_TEXT.excludedFolders.name)
-      .setDesc(SETTING_TEXT.excludedFolders.desc)
+      .setName(settingText('excludedFolders').name)
+      .setDesc(settingText('excludedFolders').desc)
       .addTextArea((area) => {
         area.setPlaceholder('Code\nTemplates').setValue(this.plugin.settings.excludedFolders);
         area.onChange(async (value) => {
@@ -858,8 +783,8 @@ class SmartTypographySettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName(SETTING_TEXT.quotesByFolder.name)
-      .setDesc(SETTING_TEXT.quotesByFolder.desc)
+      .setName(settingText('quotesByFolder').name)
+      .setDesc(settingText('quotesByFolder').desc)
       .addTextArea((area) => {
         area.setValue(this.plugin.settings.quotesByFolder);
         area.onChange(async (value) => {
@@ -869,13 +794,13 @@ class SmartTypographySettingTab extends PluginSettingTab {
         });
       });
 
-    const folderStatus = new Setting(containerEl).setName(FOLDER_STATUS.name);
+    const folderStatus = new Setting(containerEl).setName(folderStatusText().name);
     this.folderStatusEl = folderStatus.descEl;
     this.showFolderStatus();
 
     new Setting(containerEl)
-      .setName(SETTING_TEXT.customRules.name)
-      .setDesc(SETTING_TEXT.customRules.desc)
+      .setName(settingText('customRules').name)
+      .setDesc(settingText('customRules').desc)
       .addTextArea((area) => {
         area.setPlaceholder(':check: -> ✓').setValue(this.plugin.settings.customRules);
         area.onChange(async (value) => {
@@ -885,22 +810,22 @@ class SmartTypographySettingTab extends PluginSettingTab {
         });
       });
 
-    const status = new Setting(containerEl).setName(CUSTOM_STATUS.name);
+    const status = new Setting(containerEl).setName(customStatusText().name);
     this.statusEl = status.descEl;
     this.showStatus();
 
-    this.presetButtons(new Setting(containerEl).setName(PRESET_TEXT.name).setDesc(PRESET_TEXT.desc));
+    this.presetButtons(new Setting(containerEl).setName(presetText().name).setDesc(presetText().desc));
 
     containerEl.createEl('p', {
-      text: `${KEEPS_OUT_NOTE.name}. ${KEEPS_OUT_NOTE.desc}`,
+      text: `${keepsOutNote().name}. ${keepsOutNote().desc}`,
       cls: 'setting-item-description',
     });
   }
 
   private addToggle(key: (typeof TOGGLE_KEYS)[number]): void {
     new Setting(this.containerEl)
-      .setName(SETTING_TEXT[key].name)
-      .setDesc(SETTING_TEXT[key].desc)
+      .setName(settingText(key).name)
+      .setDesc(settingText(key).desc)
       .addToggle((toggle) => {
         toggle.setValue(this.plugin.settings[key]);
         toggle.onChange(async (value) => {
@@ -919,9 +844,9 @@ class PresetModal extends Modal {
 
   onOpen(): void {
     const { contentEl } = this;
-    this.setTitle('Choose a typography style');
+    this.setTitle(t('modal.preset.title'));
     contentEl.createEl('p', {
-      text: 'Pick a starting point. You can change every switch later in the plugin settings, where these presets are also listed.',
+      text: t('modal.preset.intro'),
     });
     for (const preset of STYLE_PRESETS) {
       new Setting(contentEl)
@@ -929,7 +854,7 @@ class PresetModal extends Modal {
         .setDesc(preset.desc)
         .addButton((button) =>
           button
-            .setButtonText(preset.id === 'default' ? 'Keep default' : 'Use ' + preset.label)
+            .setButtonText(preset.id === 'default' ? t('modal.preset.keepDefault') : t('modal.preset.use', { preset: preset.label }))
             .onClick(() => {
               void this.plugin.applyStylePreset(preset);
               this.close();
@@ -956,14 +881,14 @@ class QuotesModal extends FuzzySuggestModal<QuotesChoice> {
     private onChoose: (choice: QuoteStyleId | null) => void,
   ) {
     super(app);
-    this.setPlaceholder('Quotation marks for this note');
+    this.setPlaceholder(t('modal.quotes.placeholder'));
   }
 
   getItems(): QuotesChoice[] {
     return [
-      { label: 'Follow the folder and global setting (remove the property)', value: null },
+      { label: t('modal.quotes.follow'), value: null },
       ...QUOTE_CONVENTIONS.map((c) => ({ label: c.label, value: c.id })),
-      { label: 'Straight quotes (off)', value: 'off' as const },
+      { label: t('modal.quotes.straight'), value: 'off' as const },
     ];
   }
 

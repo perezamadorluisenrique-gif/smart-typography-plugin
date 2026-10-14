@@ -15,6 +15,8 @@
  * `--` becomes an en dash) never appears as typed, so it never fires.
  */
 
+import { t } from './i18n.ts';
+
 /** Splits a line into sequence and replacement. */
 export const SEPARATOR = ' -> ';
 
@@ -52,16 +54,16 @@ export interface CompiledRules {
  * other than Backspace each time.
  */
 export function problemWith(sequence: string, replacement: string): string | null {
-  if (sequence.includes('\n') || sequence.includes('\r')) return 'the sequence contains a line break';
-  if (sequence.length === 0) return 'the sequence is empty';
-  if (sequence.trim().length === 0) return 'the sequence is only spaces';
-  if ([...sequence].length < 2) return 'the sequence needs at least two characters';
+  if (sequence.includes('\n') || sequence.includes('\r')) return t('reason.sequenceLineBreak');
+  if (sequence.length === 0) return t('reason.sequenceEmpty');
+  if (sequence.trim().length === 0) return t('reason.sequenceSpaces');
+  if ([...sequence].length < 2) return t('reason.sequenceShort');
   // The editor hands over a character outside the Basic Multilingual Plane,
   // an emoji for instance, as two halves, so a rule could never see it typed.
-  if (/[\uDC00-\uDFFF]$/.test(sequence)) return 'the sequence ends with an emoji or similar character';
-  if (replacement.includes('\n') || replacement.includes('\r')) return 'the replacement contains a line break';
-  if (replacement.length === 0) return 'the replacement is empty';
-  if (replacement === sequence) return 'the replacement is the same as the sequence';
+  if (/[\uDC00-\uDFFF]$/.test(sequence)) return t('reason.sequenceEmoji');
+  if (replacement.includes('\n') || replacement.includes('\r')) return t('reason.replacementLineBreak');
+  if (replacement.length === 0) return t('reason.replacementEmpty');
+  if (replacement === sequence) return t('reason.replacementSame');
   return null;
 }
 
@@ -85,7 +87,7 @@ export function compileCustomRules(setting: string): CompiledRules {
     if (text.trim().length === 0) return;
     const at = text.indexOf(SEPARATOR);
     if (at === -1) {
-      ignored.push({ line, text, reason: `no "${SEPARATOR.trim()}" between the sequence and the replacement` });
+      ignored.push({ line, text, reason: t('reason.noSeparator', { separator: SEPARATOR.trim() }) });
       return;
     }
     // Spaces around the arrow are layout, not part of the rule.
@@ -98,7 +100,7 @@ export function compileCustomRules(setting: string): CompiledRules {
     }
     const earlier = seen.get(sequence);
     if (earlier !== undefined) {
-      ignored.push({ line, text, reason: `the same sequence is already on line ${earlier}` });
+      ignored.push({ line, text, reason: t('reason.duplicate', { line: earlier }) });
       return;
     }
     seen.set(sequence, line);
@@ -117,7 +119,7 @@ export function compileCustomRules(setting: string): CompiledRules {
       ignored.push({
         line,
         text: `${sequence}${SEPARATOR}${replacement}`,
-        reason: `the rule on line ${clash.line} already fires on the same keystrokes`,
+        reason: t('reason.clash', { line: clash.line }),
       });
       continue;
     }
@@ -197,8 +199,8 @@ export function customRulesFor(setting: string): CompiledRules {
 
 export interface Preset {
   id: string;
-  /** Button text. */
-  label: string;
+  /** Button text, in the app's language. */
+  readonly label: string;
   rules: [string, string][];
 }
 
@@ -210,7 +212,9 @@ export interface Preset {
 export const PRESETS: Preset[] = [
   {
     id: 'guillemets',
-    label: 'Guillemets << >>',
+    get label() {
+      return t('rulePreset.guillemets');
+    },
     rules: [
       ['<<', '«'],
       ['>>', '»'],
@@ -218,7 +222,9 @@ export const PRESETS: Preset[] = [
   },
   {
     id: 'symbols',
-    label: 'Symbols (c) (r) (tm)',
+    get label() {
+      return t('rulePreset.symbols');
+    },
     rules: [
       ['(c)', '©'],
       ['(r)', '®'],

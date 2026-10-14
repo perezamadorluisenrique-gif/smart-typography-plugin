@@ -124,7 +124,7 @@ test('a sequence that extends another chains off its replacement', () => {
 test('two sequences that end up waiting for the same keystrokes: the first listed wins', () => {
   const { rules, ignored } = compileCustomRules('<< -> «\n«< -> X\n<<< -> Y');
   assert.equal(rules.length, 2);
-  assert.deepEqual(ignored.map((i) => [i.line, i.reason]), [[3, 'the rule on line 2 already fires on the same keystrokes']]);
+  assert.deepEqual(ignored.map((i) => [i.line, i.reason]), [[3, 'The rule on line 2 already fires on the same keystrokes']]);
 });
 
 // --- Revert -----------------------------------------------------------------
@@ -221,27 +221,27 @@ test('invalid lines are ignored and reported with their line and reason', () => 
   assert.deepEqual(
     ignored.map((i) => [i.line, i.reason]),
     [
-      [3, 'the sequence needs at least two characters'],
-      [4, 'the sequence is only spaces'],
-      [5, 'the sequence is empty'],
-      [6, 'no "->" between the sequence and the replacement'],
-      [7, 'the same sequence is already on line 1'],
-      [8, 'the replacement is empty'],
-      [9, 'the replacement is the same as the sequence'],
-      [10, 'no "->" between the sequence and the replacement'],
+      [3, 'The sequence needs at least two characters'],
+      [4, 'The sequence is only spaces'],
+      [5, 'The sequence is empty'],
+      [6, 'No "->" between the sequence and the replacement'],
+      [7, 'The same sequence is already on line 1'],
+      [8, 'The replacement is empty'],
+      [9, 'The replacement is the same as the sequence'],
+      [10, 'No "->" between the sequence and the replacement'],
     ],
   );
 });
 
 test('the validation itself refuses line breaks, whitespace and short sequences', () => {
-  assert.equal(problemWith('', 'x'), 'the sequence is empty');
-  assert.equal(problemWith('  ', 'x'), 'the sequence is only spaces');
-  assert.equal(problemWith('\t \t', 'x'), 'the sequence is only spaces');
-  assert.equal(problemWith('a', 'x'), 'the sequence needs at least two characters');
-  assert.equal(problemWith('a\nb', 'x'), 'the sequence contains a line break');
-  assert.equal(problemWith('ab', 'x\ny'), 'the replacement contains a line break');
+  assert.equal(problemWith('', 'x'), 'The sequence is empty');
+  assert.equal(problemWith('  ', 'x'), 'The sequence is only spaces');
+  assert.equal(problemWith('\t \t', 'x'), 'The sequence is only spaces');
+  assert.equal(problemWith('a', 'x'), 'The sequence needs at least two characters');
+  assert.equal(problemWith('a\nb', 'x'), 'The sequence contains a line break');
+  assert.equal(problemWith('ab', 'x\ny'), 'The replacement contains a line break');
   assert.equal(problemWith(':)', '🙂'), null);
-  assert.equal(problemWith(':🙂', 'x'), 'the sequence ends with an emoji or similar character');
+  assert.equal(problemWith(':🙂', 'x'), 'The sequence ends with an emoji or similar character');
   assert.equal(problemWith('ab', 'x'), null);
 });
 
