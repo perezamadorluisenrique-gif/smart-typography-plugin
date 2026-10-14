@@ -335,3 +335,12 @@ test('quotes inside an HTML tag stay straight, and the text around it is curled'
   assert.equal(type('<img src="a.png" width="300">'), '<img src="a.png" width="300">');
   assert.equal(type('<font color=\'red\'>x</font>'), '<font color=\'red\'>x</font>');
 });
+
+test('a rule never takes characters from a span that has just closed', () => {
+  // The `--` belongs to the comment's `-->`, so `=` is just `=`.
+  assert.equal(type('=', { start: '<!-- note -->' }), '<!-- note -->=');
+  assert.equal(type('>', { start: 'Use `a-`' }), 'Use `a-`>');
+  assert.equal(type('=', { start: 'See [[a<]]' }), 'See [[a<]]=');
+  // Typed in prose, the same rules still fire.
+  assert.equal(type('=', { start: 'a >' }), 'a ≥');
+});

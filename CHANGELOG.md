@@ -4,6 +4,11 @@ The release workflow uses the section named after the version being released
 as the release description, so every version needs one. `npm version <x.y.z>`
 renames the `Unreleased` heading below to that version.
 
+## 0.7.1
+
+- Code blocks inside callouts, quotes and list items are no longer changed, as you type or with “Apply typography”.
+- Typing = or > right after a closed comment, code span or link (`-->=`) no longer turns the end of it into a symbol.
+
 ## 0.7.0
 
 - Interface available in 8 more languages (Simplified Chinese, Japanese, Korean, Spanish, German, French, Brazilian Portuguese and Russian), following Obsidian's language setting.

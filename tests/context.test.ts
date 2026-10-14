@@ -140,3 +140,29 @@ test('a less-than sign that opens no tag is prose', () => {
   assert.equal(at('x <= 3 and '), null);
   assert.equal(at('<3 you '), null);
 });
+
+test('a fence inside a quote or callout opens a code block', () => {
+  assert.equal(at('> [!note]\n> ```css\n> .a { content: '), 'code-block');
+  assert.equal(at('> ```\n> class '), 'code-block');
+  assert.equal(at('> > ```\n> > code '), 'code-block');
+  assert.equal(at('> ```\n> code\n> ```\n> prose '), null);
+});
+
+test('a code block opened in a callout ends with the callout', () => {
+  assert.equal(at('> ```\n> code\n\nprose '), null);
+});
+
+test('a fence opening a list item, or indented under one, opens a code block', () => {
+  assert.equal(at('- ```js\n  const a = '), 'code-block');
+  assert.equal(at('- item\n\t```\n\tcode '), 'code-block');
+});
+
+test('the info string on a fence line is not prose', () => {
+  assert.equal(at('```c'), 'code-block');
+  assert.equal(at('> ~~~'), 'code-block');
+  assert.equal(at('```a``` and '), null);
+});
+
+test('a quoted fence inside a block opened outside any quote is code, not its end', () => {
+  assert.equal(at('```md\n> ```\nstill code '), 'code-block');
+});

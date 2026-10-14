@@ -71,11 +71,12 @@ export function substitutionFor(
   // keystroke, never pay for it; on a phone with a long note that scan is
   // the difference between typing and lag.
   if (action === null || protectedRegionAt(before) !== null) return null;
-  // A custom sequence can be several characters long and contain markup, so
-  // where it starts has to be prose as well as where the cursor is.
+  // A rule that takes characters already typed (`--` and `->`, or a custom
+  // sequence with markup in it) needs prose where it starts as well as at the
+  // cursor: the `--` of a closed `<!-- -->` followed by `=` is not a `>=`.
   if (
     action.kind === 'replace' &&
-    action.rule === 'custom' &&
+    action.from < before.length &&
     protectedRegionAt(before.slice(0, action.from)) !== null
   ) {
     return null;
