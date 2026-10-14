@@ -1,4 +1,4 @@
-import { App, FuzzySuggestModal, Modal, Notice, Plugin, PluginSettingTab, Setting, editorInfoField } from 'obsidian';
+import { App, FuzzySuggestModal, Modal, Notice, Plugin, PluginSettingTab, Setting, editorInfoField, getIcon } from 'obsidian';
 import type { Editor, FileManager, SettingDefinitionItem, TFile } from 'obsidian';
 import { Prec, StateEffect, StateField } from '@codemirror/state';
 import type { Extension } from '@codemirror/state';
@@ -132,7 +132,7 @@ export default class SmartTypographyPlugin extends Plugin {
     this.addCommand({
       id: 'apply-to-text',
       name: t('command.applyToText'),
-      icon: 'wand-sparkles',
+      icon: iconOr('wand-sparkles', 'wand-2'),
       editorCallback: (editor, ctx) => {
         const text = editor.getValue();
         const ranges = editor.somethingSelected()
@@ -358,7 +358,9 @@ export default class SmartTypographyPlugin extends Plugin {
     // arriving here are half-finished and the browser will revise them.
     // Rewriting them is what breaks dead-key quotes on GNOME
     // (mgmeyers/obsidian-smart-typography#63 and #44).
-    if (view.composing) return false;
+    // With the CodeMirror in Obsidian 1.3, `composing` is still false at a
+    // composition's first keystroke, when `compositionStarted` is already true.
+    if (view.composing || view.compositionStarted) return false;
     if (view.state.readOnly) return false;
 
     // Typing a quote over a selection wraps it.
@@ -899,4 +901,12 @@ class QuotesModal extends FuzzySuggestModal<QuotesChoice> {
   onChooseItem(item: QuotesChoice): void {
     this.onChoose(item.value);
   }
+}
+
+/**
+ * `name`, or `older` when this Obsidian's icon set does not have it yet: an
+ * icon newer than the app draws nothing, on the mobile toolbar for one.
+ */
+function iconOr(name: string, older: string): string {
+  return getIcon(name) ? name : older;
 }
