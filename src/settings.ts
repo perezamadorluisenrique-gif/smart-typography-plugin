@@ -6,6 +6,8 @@
  * is the only file that talks to the editor.
  */
 
+import { t } from './i18n.ts';
+
 export type QuoteStyleId =
   | 'off'
   | 'english'
@@ -27,8 +29,8 @@ export const APOSTROPHE = '’';
 
 export interface QuoteConvention {
   id: QuoteStyleId;
-  /** Shown in the settings dropdown. */
-  label: string;
+  /** Shown in the settings dropdown, in the app's language. */
+  readonly label: string;
   doubleOpen: string;
   doubleClose: string;
   singleOpen: string;
@@ -43,7 +45,9 @@ export interface QuoteConvention {
 export const QUOTE_CONVENTIONS: QuoteConvention[] = [
   {
     id: 'english',
-    label: 'English “ ” ‘ ’',
+    get label() {
+      return t('convention.english');
+    },
     doubleOpen: '“',
     doubleClose: '”',
     singleOpen: '‘',
@@ -52,7 +56,9 @@ export const QUOTE_CONVENTIONS: QuoteConvention[] = [
   },
   {
     id: 'german',
-    label: 'German „ “ ‚ ‘',
+    get label() {
+      return t('convention.german');
+    },
     doubleOpen: '„',
     doubleClose: '“',
     singleOpen: '‚',
@@ -61,7 +67,9 @@ export const QUOTE_CONVENTIONS: QuoteConvention[] = [
   },
   {
     id: 'french',
-    label: 'French « » ‹ ›',
+    get label() {
+      return t('convention.french');
+    },
     doubleOpen: '«',
     doubleClose: '»',
     singleOpen: '‹',
@@ -73,7 +81,9 @@ export const QUOTE_CONVENTIONS: QuoteConvention[] = [
   },
   {
     id: 'spanish',
-    label: 'Spanish « » “ ”',
+    get label() {
+      return t('convention.spanish');
+    },
     doubleOpen: '«',
     doubleClose: '»',
     singleOpen: '“',
@@ -82,7 +92,9 @@ export const QUOTE_CONVENTIONS: QuoteConvention[] = [
   },
   {
     id: 'swedish',
-    label: 'Swedish ” ” ’ ’',
+    get label() {
+      return t('convention.swedish');
+    },
     doubleOpen: '”',
     doubleClose: '”',
     singleOpen: '’',
@@ -91,7 +103,9 @@ export const QUOTE_CONVENTIONS: QuoteConvention[] = [
   },
   {
     id: 'polish',
-    label: 'Polish „ ” ‚ ’',
+    get label() {
+      return t('convention.polish');
+    },
     doubleOpen: '„',
     doubleClose: '”',
     singleOpen: '‚',
@@ -100,7 +114,9 @@ export const QUOTE_CONVENTIONS: QuoteConvention[] = [
   },
   {
     id: 'russian',
-    label: 'Russian « » „ “',
+    get label() {
+      return t('convention.russian');
+    },
     doubleOpen: '«',
     doubleClose: '»',
     singleOpen: '„',

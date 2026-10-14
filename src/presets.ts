@@ -4,6 +4,7 @@
  * excluded folders or custom replacement rules.
  */
 
+import { t } from './i18n.ts';
 import { DEFAULT_SETTINGS } from './settings.ts';
 import type { SmartTypographySettings } from './settings.ts';
 
@@ -23,8 +24,9 @@ export type StylePresetValues = Pick<
 
 export interface StylePreset {
   id: string;
-  label: string;
-  desc: string;
+  /** Shown to the user, in the app's language. */
+  readonly label: string;
+  readonly desc: string;
   /** Quote style stays as it is unless the preset names one. */
   values: StylePresetValues;
 }
@@ -32,8 +34,12 @@ export interface StylePreset {
 export const STYLE_PRESETS: StylePreset[] = [
   {
     id: 'default',
-    label: 'Default',
-    desc: 'Curly quotes, dashes, ellipsis, arrows and symbols. No automatic capitals.',
+    get label() {
+      return t('stylePreset.default.label');
+    },
+    get desc() {
+      return t('stylePreset.default.desc');
+    },
     values: {
       smartApostrophes: DEFAULT_SETTINGS.smartApostrophes,
       skipClosingQuote: DEFAULT_SETTINGS.skipClosingQuote,
@@ -48,8 +54,12 @@ export const STYLE_PRESETS: StylePreset[] = [
   },
   {
     id: 'writer',
-    label: 'Writer',
-    desc: 'Prose: curly quotes, dashes, ellipsis and a capital at the start of each sentence. No arrows or math symbols.',
+    get label() {
+      return t('stylePreset.writer.label');
+    },
+    get desc() {
+      return t('stylePreset.writer.desc');
+    },
     values: {
       smartApostrophes: true,
       skipClosingQuote: true,
@@ -64,8 +74,12 @@ export const STYLE_PRESETS: StylePreset[] = [
   },
   {
     id: 'academic',
-    label: 'Academic',
-    desc: 'Everything on, including arrows and math symbols, plus automatic capitals.',
+    get label() {
+      return t('stylePreset.academic.label');
+    },
+    get desc() {
+      return t('stylePreset.academic.desc');
+    },
     values: {
       smartApostrophes: true,
       skipClosingQuote: true,
@@ -80,8 +94,12 @@ export const STYLE_PRESETS: StylePreset[] = [
   },
   {
     id: 'developer',
-    label: 'Developer (quiet)',
-    desc: 'Straight quotes and plain hyphens stay as typed. Only arrows and math symbols are converted.',
+    get label() {
+      return t('stylePreset.developer.label');
+    },
+    get desc() {
+      return t('stylePreset.developer.desc');
+    },
     values: {
       quoteStyle: 'off',
       smartApostrophes: false,
