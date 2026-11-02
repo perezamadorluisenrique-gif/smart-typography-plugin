@@ -382,6 +382,16 @@ It needs Obsidian 1.3.5 or newer.
 All of them are in the community directory: Settings -> Community plugins ->
 Browse, then search for the name.
 
+### Pro and templates
+
+Optional paid extras, one-time payment. Everything in the free plugins stays free.
+
+- [Book Studio Pro](https://perezamadorluisenrique-gif.github.io/pro/book-studio/): More themes and trim sizes, full cover and KDP preflight for Book Studio.
+- [Section Numbering Pro](https://perezamadorluisenrique-gif.github.io/pro/section-numbering/): Numbering profiles, cross-references and multi-note documents.
+- [Update Radar Pro](https://perezamadorluisenrique-gif.github.io/pro/update-radar/): More control over plugin updates for Update Radar.
+- [KDP Book Vault](https://perezamadorluisenrique-gif.github.io/pro/kdp-book-vault/): A ready-made book vault for Book Studio, with two sample books.
+- [Thesis and Report Vault](https://perezamadorluisenrique-gif.github.io/pro/thesis-vault/): A thesis and report vault numbered with Section Numbering.
+
 Follow new plugins and updates on X: [@luenpereza](https://x.com/luenpereza)
 
 ## Licence

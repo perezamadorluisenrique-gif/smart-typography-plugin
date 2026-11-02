@@ -25,6 +25,7 @@ import type { Preset } from './src/custom.ts';
 import type { QuoteStyleId, SmartTypographySettings } from './src/settings.ts';
 import { conventionFor } from './src/settings.ts';
 import { t } from './src/i18n.ts';
+import { moreText, openMore } from './src/more-link.ts';
 
 /**
  * How much text after the cursor the engine is shown. Only the
@@ -628,6 +629,7 @@ class SmartTypographySettingTab extends PluginSettingTab {
       // No control: a row that is only an explanation, which also puts the
       // sentence in the settings search.
       keepsOutNote(),
+      { name: moreText().name, desc: moreText().desc, action: () => openMore() },
     ];
   }
 
@@ -822,6 +824,11 @@ class SmartTypographySettingTab extends PluginSettingTab {
       text: `${keepsOutNote().name}. ${keepsOutNote().desc}`,
       cls: 'setting-item-description',
     });
+
+    new Setting(containerEl)
+      .setName(moreText().name)
+      .setDesc(moreText().desc)
+      .addButton((button) => button.setButtonText(moreText().button).onClick(() => openMore()));
   }
 
   private addToggle(key: (typeof TOGGLE_KEYS)[number]): void {
