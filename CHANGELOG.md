@@ -4,6 +4,10 @@ The release workflow uses the section named after the version being released
 as the release description, so every version needs one. `npm version <x.y.z>`
 renames the `Unreleased` heading below to that version.
 
+## Unreleased
+
+- Settings: the first plugin suggested under "More plugins" is now Book Studio (a link you open yourself; nothing is shown or requested otherwise).
+
 ## 0.7.3
 
 - Settings: a link to more plugins, the optional Pro versions and template vaults (opens a web page when clicked).
