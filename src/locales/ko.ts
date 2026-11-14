@@ -63,6 +63,9 @@ const ko: Messages = {
   'setting.wrapSelection.desc': '텍스트를 선택하고 따옴표를 입력하면, 텍스트를 바꾸는 대신 둥근 따옴표로 감쌉니다.',
   'setting.dashes.name': '대시',
   'setting.dashes.desc': '--는 –로, ---는 —로 바뀝니다.',
+  'setting.quoteDashes.name': 'Dashes at the start of a quote line',
+  'setting.quoteDashes.desc':
+    'In a quote or callout, also turns -- and --- typed on their own into dashes, for attributions. Off by default, because a lone --- is a horizontal rule; Backspace turns a dash back into hyphens.',
   'setting.ellipsis.name': '말줄임표',
   'setting.ellipsis.desc': '...는 …로 바뀝니다.',
   'setting.arrows.name': '화살표',

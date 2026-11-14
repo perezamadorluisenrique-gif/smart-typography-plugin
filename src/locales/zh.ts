@@ -61,6 +61,9 @@ const zh: Messages = {
   'setting.wrapSelection.desc': '选中文本后输入引号，会在文本两侧加上弯引号，而不是替换该文本。',
   'setting.dashes.name': '破折号',
   'setting.dashes.desc': '-- 变为 –，--- 变为 —。',
+  'setting.quoteDashes.name': 'Dashes at the start of a quote line',
+  'setting.quoteDashes.desc':
+    'In a quote or callout, also turns -- and --- typed on their own into dashes, for attributions. Off by default, because a lone --- is a horizontal rule; Backspace turns a dash back into hyphens.',
   'setting.ellipsis.name': '省略号',
   'setting.ellipsis.desc': '... 变为 …。',
   'setting.arrows.name': '箭头',

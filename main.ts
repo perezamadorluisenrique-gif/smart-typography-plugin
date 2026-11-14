@@ -522,6 +522,7 @@ const TOGGLE_KEYS = [
   'smartApostrophes',
   'skipClosingQuote',
   'dashes',
+  'quoteDashes',
   'ellipsis',
   'arrows',
   'mathSymbols',

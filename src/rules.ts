@@ -28,21 +28,24 @@ export interface Rule {
    * the dash rules away from hyphens that are Markdown syntax rather than
    * punctuation.
    */
-  guard?: (lineBefore: string) => boolean;
+  guard?: (lineBefore: string, quoteDashes: boolean) => boolean;
 }
 
 /**
  * False while the hyphens being typed are syntax:
  *
  * - `---` on a line of its own, which is a horizontal rule, a setext
- *   underline and the frontmatter fence, in a quote or callout as well;
+ *   underline and the frontmatter fence, in a quote or callout as well,
+ *   unless `quoteDashes` is on: then a line that opens with `>` takes the
+ *   dashes, for attributions such as `> -- Author`;
  * - a table's delimiter row, `| --- | :-: |`, which stops being one the
  *   moment a hyphen in it becomes a dash, so the table no longer renders;
  * - the `<!--` that opens an HTML comment.
  */
-const hyphensAreProse = (lineBefore: string): boolean => {
+const hyphensAreProse = (lineBefore: string, quoteDashes = false): boolean => {
   const body = lineBefore.replace(/^\s*(?:>\s*)*/, '');
-  if (/^-*$/.test(body)) return false;
+  const inQuote = /^\s*>/.test(lineBefore);
+  if (/^-*$/.test(body) && !(quoteDashes && inQuote)) return false;
   if (body.includes('|') && /^[\s|:-]*$/.test(body)) return false;
   return !lineBefore.endsWith('<!-');
 };
@@ -112,12 +115,13 @@ export function matchRule(
   lineBefore: string,
   typed: string,
   enabled: (group: RuleGroup) => boolean,
+  quoteDashes = false,
 ): Rule | null {
   for (const rule of RULES) {
     if (rule.typed !== typed) continue;
     if (!enabled(rule.group)) continue;
     if (!before.endsWith(rule.before)) continue;
-    if (rule.guard && !rule.guard(lineBefore)) continue;
+    if (rule.guard && !rule.guard(lineBefore, quoteDashes)) continue;
     return rule;
   }
   return null;

@@ -135,7 +135,7 @@ function ruleCandidateFor(
     if (decade) return decade;
   }
 
-  const rule = matchRule(before, lineBefore, typed, (group) => groupEnabled(group, settings));
+  const rule = matchRule(before, lineBefore, typed, (group) => groupEnabled(group, settings), settings.quoteDashes);
   if (!rule) return customAction(before, after, lineBefore, typed, settings);
 
   return {

@@ -132,6 +132,8 @@ export interface SmartTypographySettings {
   smartApostrophes: boolean;
   /** `--` -> en dash, `---` -> em dash. */
   dashes: boolean;
+  /** Turn `--` and `---` into dashes on a line of a quote or callout, where a lone run of hyphens is otherwise left alone. */
+  quoteDashes: boolean;
   /** `...` -> `…`. */
   ellipsis: boolean;
   /** `->` `<-` `<->` `=>` and friends. */
@@ -162,6 +164,7 @@ export const DEFAULT_SETTINGS: SmartTypographySettings = {
   quoteStyle: 'english',
   smartApostrophes: true,
   dashes: true,
+  quoteDashes: false,
   ellipsis: true,
   arrows: true,
   mathSymbols: true,

@@ -69,6 +69,9 @@ const de: Messages = {
     'Wenn Text ausgewählt ist, setzt das Tippen eines Anführungszeichens typografische Anführungszeichen darum, statt den Text zu ersetzen.',
   'setting.dashes.name': 'Striche',
   'setting.dashes.desc': '-- wird zu – und --- wird zu —.',
+  'setting.quoteDashes.name': 'Dashes at the start of a quote line',
+  'setting.quoteDashes.desc':
+    'In a quote or callout, also turns -- and --- typed on their own into dashes, for attributions. Off by default, because a lone --- is a horizontal rule; Backspace turns a dash back into hyphens.',
   'setting.ellipsis.name': 'Auslassungspunkte',
   'setting.ellipsis.desc': '... wird zu ….',
   'setting.arrows.name': 'Pfeile',
