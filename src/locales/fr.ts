@@ -70,6 +70,9 @@ const fr: Messages = {
     'Avec du texte sélectionné, saisir un guillemet place des guillemets typographiques autour au lieu de remplacer le texte.',
   'setting.dashes.name': 'Tirets',
   'setting.dashes.desc': '-- devient – et --- devient —.',
+  'setting.quoteDashes.name': 'Dashes at the start of a quote line',
+  'setting.quoteDashes.desc':
+    'In a quote or callout, also turns -- and --- typed on their own into dashes, for attributions. Off by default, because a lone --- is a horizontal rule; Backspace turns a dash back into hyphens.',
   'setting.ellipsis.name': 'Points de suspension',
   'setting.ellipsis.desc': '... devient ….',
   'setting.arrows.name': 'Flèches',

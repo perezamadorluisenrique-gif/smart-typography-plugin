@@ -6,6 +6,7 @@ renames the `Unreleased` heading below to that version.
 
 ## Unreleased
 
+- New setting, off by default: *Dashes at the start of a quote line*. In a quote or callout, a `--` or `---` typed on its own becomes a dash, so attributions like `> -- Author` work. Backspace turns the dash back into hyphens.
 - Settings: the first plugin suggested under "More plugins" is now Book Studio (a link you open yourself; nothing is shown or requested otherwise).
 
 ## 0.7.3

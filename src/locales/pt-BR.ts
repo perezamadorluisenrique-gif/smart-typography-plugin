@@ -67,6 +67,9 @@ const ptBR: Messages = {
   'setting.wrapSelection.desc': 'Com texto selecionado, digitar uma aspa coloca aspas tipográficas ao redor em vez de substituí-lo.',
   'setting.dashes.name': 'Travessões',
   'setting.dashes.desc': '-- vira – e --- vira —.',
+  'setting.quoteDashes.name': 'Dashes at the start of a quote line',
+  'setting.quoteDashes.desc':
+    'In a quote or callout, also turns -- and --- typed on their own into dashes, for attributions. Off by default, because a lone --- is a horizontal rule; Backspace turns a dash back into hyphens.',
   'setting.ellipsis.name': 'Reticências',
   'setting.ellipsis.desc': '... vira ….',
   'setting.arrows.name': 'Setas',

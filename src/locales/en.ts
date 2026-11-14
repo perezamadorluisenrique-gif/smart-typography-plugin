@@ -70,6 +70,9 @@ const en = {
   'setting.wrapSelection.desc': 'With text selected, typing a quote puts curly quotes around it instead of replacing it.',
   'setting.dashes.name': 'Dashes',
   'setting.dashes.desc': 'Turns -- into – and --- into —.',
+  'setting.quoteDashes.name': 'Dashes at the start of a quote line',
+  'setting.quoteDashes.desc':
+    'In a quote or callout, also turns -- and --- typed on their own into dashes, for attributions. Off by default, because a lone --- is a horizontal rule; Backspace turns a dash back into hyphens.',
   'setting.ellipsis.name': 'Ellipsis',
   'setting.ellipsis.desc': 'Turns three dots into ….',
   'setting.arrows.name': 'Arrows',

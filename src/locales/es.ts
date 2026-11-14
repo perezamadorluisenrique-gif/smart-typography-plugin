@@ -67,6 +67,9 @@ const es: Messages = {
   'setting.wrapSelection.desc': 'Con texto seleccionado, escribir una comilla pone comillas tipográficas alrededor en lugar de reemplazarlo.',
   'setting.dashes.name': 'Rayas',
   'setting.dashes.desc': '-- se convierte en – y --- en —.',
+  'setting.quoteDashes.name': 'Dashes at the start of a quote line',
+  'setting.quoteDashes.desc':
+    'In a quote or callout, also turns -- and --- typed on their own into dashes, for attributions. Off by default, because a lone --- is a horizontal rule; Backspace turns a dash back into hyphens.',
   'setting.ellipsis.name': 'Puntos suspensivos',
   'setting.ellipsis.desc': '... se convierte en ….',
   'setting.arrows.name': 'Flechas',

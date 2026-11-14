@@ -169,7 +169,8 @@ original's bug reports come from. Nothing is substituted inside:
 
 `---` alone on a line is left alone too, in a quote or callout as well: it is
 a horizontal rule, a setext underline and the frontmatter fence, and none of
-those is an em dash. So is the delimiter row of a table, `| --- | :-: |`,
+those is an em dash. (The setting *Dashes at the start of a quote line* turns that off for
+lines of a quote or callout, so `> -- Author` works.) So is the delimiter row of a table, `| --- | :-: |`,
 which would stop being one with a dash in it.
 
 [#39]: https://github.com/mgmeyers/obsidian-smart-typography/issues/39

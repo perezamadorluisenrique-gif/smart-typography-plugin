@@ -67,6 +67,9 @@ const ru: Messages = {
   'setting.wrapSelection.desc': 'Если выделен текст, набранная кавычка ставит типографские кавычки вокруг него, а не заменяет его.',
   'setting.dashes.name': 'Тире',
   'setting.dashes.desc': '-- превращается в –, а --- в —.',
+  'setting.quoteDashes.name': 'Dashes at the start of a quote line',
+  'setting.quoteDashes.desc':
+    'In a quote or callout, also turns -- and --- typed on their own into dashes, for attributions. Off by default, because a lone --- is a horizontal rule; Backspace turns a dash back into hyphens.',
   'setting.ellipsis.name': 'Многоточие',
   'setting.ellipsis.desc': '... превращается в ….',
   'setting.arrows.name': 'Стрелки',

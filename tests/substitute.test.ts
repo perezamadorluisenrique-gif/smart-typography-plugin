@@ -344,3 +344,13 @@ test('a rule never takes characters from a span that has just closed', () => {
   // Typed in prose, the same rules still fire.
   assert.equal(type('=', { start: 'a >' }), 'a ≥');
 });
+
+test('a lone -- in a quote stays hyphens unless the quote dashes setting is on', () => {
+  assert.equal(type('--', { start: '> text\n> ' }), '> text\n> --');
+  assert.equal(type('--', { start: '> text\n> ', settings: { quoteDashes: true } }), '> text\n> –');
+  assert.equal(type('---', { start: '> ', settings: { quoteDashes: true } }), '> —');
+});
+
+test('quote dashes does not touch a lone --- outside a quote', () => {
+  assert.equal(type('---', { start: 'text\n', settings: { quoteDashes: true } }), 'text\n---');
+});

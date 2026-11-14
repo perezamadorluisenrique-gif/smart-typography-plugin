@@ -64,6 +64,9 @@ const ja: Messages = {
   'setting.wrapSelection.desc': 'テキストを選択して引用符を入力すると、置き換えずにスマート引用符で囲みます。',
   'setting.dashes.name': 'ダッシュ',
   'setting.dashes.desc': '-- を – に、--- を — にします。',
+  'setting.quoteDashes.name': 'Dashes at the start of a quote line',
+  'setting.quoteDashes.desc':
+    'In a quote or callout, also turns -- and --- typed on their own into dashes, for attributions. Off by default, because a lone --- is a horizontal rule; Backspace turns a dash back into hyphens.',
   'setting.ellipsis.name': '三点リーダー',
   'setting.ellipsis.desc': '... を … にします。',
   'setting.arrows.name': '矢印',
