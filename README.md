@@ -286,6 +286,26 @@ npm test
 npm run build
 ```
 
+## Extension API
+
+Another plugin can choose the quotation marks and the dash characters this plugin types for a note. The API
+is `app.plugins.getPlugin('typography-as-you-type').api`, and the workspace event
+`typography-as-you-type:api-ready` fires (with the API as its argument) when this plugin has loaded.
+
+```ts
+const api = app.plugins.getPlugin('typography-as-you-type')?.api;
+const stop = api?.registerQuoteResolver((note) =>
+  note.path.startsWith('Buch/')
+    ? { doubleOpen: '„', doubleClose: '“', singleOpen: '‚', singleClose: '‘', padding: '' }
+    : null);
+api?.registerDashResolver((note) => (note.path.startsWith('Buch/') ? { en: '—', em: '—' } : null));
+```
+
+A resolver gets `{ path }` and returns marks, or `null` to leave the note alone. The newest resolver with an
+answer wins, a note's own `typography-quotes` property still wins over any resolver, and a resolver that throws
+or answers badly is skipped. Each register call returns a function that undoes it. Resolvers run on keystrokes
+a rule reacts to, so keep them quick. With nothing registered, nothing changes.
+
 ## What is tested, and where
 
 The 130 tests cover the engine, not the editor. They type through

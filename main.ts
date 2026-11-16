@@ -12,7 +12,7 @@ import type { TextChange } from './src/apply.ts';
 import { curlComposedQuotes } from './src/compose.ts';
 import { revertFor } from './src/revert.ts';
 import { NOTE_PROPERTY, folderList, inFolder, isOff, noteIsOff, setNoteOff, setNoteProperty } from './src/scope.ts';
-import { LANG_PROPERTY, QUOTES_PROPERTY, folderQuotesFor, settingsForNote } from './src/quotes.ts';
+import { LANG_PROPERTY, QUOTES_PROPERTY, folderQuotesFor, parseConvention, settingsForNote } from './src/quotes.ts';
 import type { LastSubstitution } from './src/revert.ts';
 import { cannotCapitalize, mightSubstitute, substitutionFor } from './src/substitute.ts';
 import { STYLE_PRESETS, applyStylePreset, shouldPromptForPreset } from './src/presets.ts';
@@ -24,6 +24,7 @@ import { PRESETS, addPreset, customRulesFor } from './src/custom.ts';
 import type { Preset } from './src/custom.ts';
 import type { QuoteStyleId, SmartTypographySettings } from './src/settings.ts';
 import { conventionFor } from './src/settings.ts';
+import { ExtensionRegistry, resolvedDash, withResolvedQuotes } from './src/api.ts';
 import { t } from './src/i18n.ts';
 import { moreDefinitions, renderMore } from './src/more-link.ts';
 
@@ -64,12 +65,16 @@ const lastSubstitution = StateField.define<LastSubstitution | null>({
 export default class SmartTypographyPlugin extends Plugin {
   settings: SmartTypographySettings = { ...DEFAULT_SETTINGS };
   private showPresetPrompt = false;
+  /** The extension API: other plugins may register quote and dash resolvers here. See `src/api.ts`. */
+  readonly api = new ExtensionRegistry();
 
   async onload() {
     await this.loadSettings();
 
     this.addSettingTab(new SmartTypographySettingTab(this.app, this));
     this.registerEditorExtension(this.editorExtension());
+    // Plugins that loaded before this one are told the extension API is ready (see `src/api.ts`).
+    this.app.workspace.trigger('typography-as-you-type:api-ready', this.api);
 
     // First run only: offer the style presets once. The flag is saved the
     // moment the prompt opens, so closing it any way counts as an answer.
@@ -205,9 +210,12 @@ export default class SmartTypographyPlugin extends Plugin {
     const settings = this.settings;
     if (!file) return settings;
     const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
-    return settingsForNote(
-      { path: file.path, quotes: frontmatter?.[QUOTES_PROPERTY], lang: frontmatter?.[LANG_PROPERTY] },
-      settings,
+    const own: unknown = frontmatter?.[QUOTES_PROPERTY];
+    return withResolvedQuotes(
+      settingsForNote({ path: file.path, quotes: own, lang: frontmatter?.[LANG_PROPERTY] }, settings),
+      this.api,
+      { path: file.path },
+      parseConvention(own) !== null,
     );
   }
 
@@ -406,15 +414,18 @@ export default class SmartTypographyPlugin extends Plugin {
 
     // One transaction for the typed character and the replacement
     // together, so the whole substitution is a single undo step.
-    const cursor = action.from + action.insert.length;
+    // Another plugin may have asked for other dash characters for this note (see `src/api.ts`).
+    const file = state.field(editorInfoField, false)?.file;
+    const insert = file ? resolvedDash(action.literal, action.insert, this.api.dashesFor({ path: file.path })) : action.insert;
+    const cursor = action.from + insert.length;
     view.dispatch({
-      changes: { from: action.from, to: action.to, insert: action.insert },
+      changes: { from: action.from, to: action.to, insert },
       selection: { anchor: cursor },
       userEvent: 'input.type',
       effects: rememberSubstitution.of({
         from: action.from,
         to: cursor,
-        inserted: action.insert,
+        inserted: insert,
         literal: action.literal,
       }),
     });

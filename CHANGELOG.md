@@ -4,9 +4,10 @@ The release workflow uses the section named after the version being released
 as the release description, so every version needs one. `npm version <x.y.z>`
 renames the `Unreleased` heading below to that version.
 
-## Unreleased
+## 0.8.0
 
 - Settings: the first plugin suggested under "More plugins" is now Book Studio (a link you open yourself; nothing is shown or requested otherwise).
+- Extension API: another plugin can choose the quotation marks and the dash characters typed in a note (see the README).
 
 ## 0.7.3
 
