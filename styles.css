@@ -1,0 +1,25 @@
+/* pro-hint:start (canonical: obsidian-dev/tools/more-plugins/pro-hint.css) */
+.siulved-pro-hint {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--size-4-2);
+	margin: var(--size-4-3) 0;
+	padding: var(--size-4-2) var(--size-4-3);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+.siulved-pro-hint-text {
+	flex: 1 1 16em;
+}
+.siulved-pro-hint-actions {
+	display: flex;
+	gap: var(--size-4-2);
+}
+.notice .siulved-pro-hint {
+	color: inherit;
+	border-color: currentColor;
+}
+/* pro-hint:end */

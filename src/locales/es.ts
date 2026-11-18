@@ -99,6 +99,11 @@ const es: Messages = {
   'setting.keepsOut.desc':
     'Los bloques de código, el código en línea, las fórmulas, los destinos de enlaces, el frontmatter, las etiquetas y comentarios HTML y las expresiones de Templater se quedan exactamente como se escribieron. Retroceso justo después de una sustitución devuelve lo que escribiste.',
   'setting.folderStatus.name': 'Carpetas en uso',
+  'setting.proHints.name': 'Mostrar consejos de Pro',
+  'setting.proHints.desc': 'De vez en cuando, una línea sobre Typography Pro (de pago) justo donde ayudaría, como mucho una vez cada 14 días en cada sitio. Texto fijo: sin red y sin seguimiento.',
+  'proHint.profile': '¿Escribes en más de un idioma? Typography Pro da a cada carpeta o nota su propio perfil tipográfico, con las rayas de diálogo del español y del francés, y corrige carpetas enteras de una vez.',
+  'proHint.more': 'Más información',
+  'proHint.off': 'No volver a mostrar',
   'setting.rulesStatus.name': 'Reglas en uso',
 
   // Status lines under the text areas

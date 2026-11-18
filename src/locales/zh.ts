@@ -91,6 +91,11 @@ const zh: Messages = {
   'setting.keepsOut.desc':
     '代码块、行内代码、公式、链接目标、frontmatter、HTML 标签和注释，以及 Templater 表达式都会保持输入原样。替换之后紧接着按退格键可恢复你输入的内容。',
   'setting.folderStatus.name': '生效的文件夹',
+  'setting.proHints.name': '显示 Pro 提示',
+  'setting.proHints.desc': '偶尔在有用的地方显示一行关于 Typography Pro（付费）的提示，每个位置最多每 14 天一次。固定文本：无网络请求，无跟踪。',
+  'proHint.profile': '用多种语言写作？Typography Pro 为每个文件夹或笔记提供各自的排版配置，支持西班牙语和法语的对话破折号，并可一次修正整个文件夹。',
+  'proHint.more': '了解更多',
+  'proHint.off': '不再显示',
   'setting.rulesStatus.name': '生效的规则',
 
   // Status lines under the text areas

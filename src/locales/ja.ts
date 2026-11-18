@@ -96,6 +96,11 @@ const ja: Messages = {
   'setting.keepsOut.desc':
     'コードブロック、インラインコード、数式、リンク先、フロントマター、HTML タグとコメント、Templater の式は、入力したままになります。置換の直後に Backspace を押すと入力した文字に戻ります。',
   'setting.folderStatus.name': '有効なフォルダ',
+  'setting.proHints.name': 'Pro のヒントを表示',
+  'setting.proHints.desc': 'ときどき、役に立つ場面で Typography Pro（有料）についての一行を表示します。場所ごとに14日に1回まで。固定テキストで、通信も追跡もありません。',
+  'proHint.profile': '複数の言語で書いていますか？Typography Pro なら、フォルダーやノートごとに独自の組版プロファイルを設定でき、スペイン語とフランス語の会話ダッシュにも対応し、フォルダー全体を一度に修正できます。',
+  'proHint.more': '詳しく見る',
+  'proHint.off': '今後は表示しない',
   'setting.rulesStatus.name': '有効なルール',
 
   // Status lines under the text areas

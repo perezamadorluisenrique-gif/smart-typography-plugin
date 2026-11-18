@@ -93,6 +93,11 @@ const ko: Messages = {
   'setting.keepsOut.desc':
     '코드 블록, 인라인 코드, 수식, 링크 대상, 프론트매터, HTML 태그와 주석, Templater 표현식은 입력한 그대로 둡니다. 치환 직후에 Backspace를 누르면 입력한 문자로 되돌아갑니다.',
   'setting.folderStatus.name': '사용 중인 폴더',
+  'setting.proHints.name': 'Pro 팁 표시',
+  'setting.proHints.desc': '가끔, 도움이 될 만한 자리에서 Typography Pro(유료)에 대한 한 줄을 보여 줍니다. 자리마다 14일에 한 번까지. 고정 텍스트이며 네트워크도 추적도 없습니다.',
+  'proHint.profile': '여러 언어로 글을 쓰시나요? Typography Pro는 폴더나 노트마다 고유한 조판 프로필을 지정하고, 스페인어와 프랑스어 대화 대시를 지원하며, 폴더 전체를 한 번에 고칩니다.',
+  'proHint.more': '자세히 보기',
+  'proHint.off': '다시 표시 안 함',
   'setting.rulesStatus.name': '사용 중인 규칙',
 
   // Status lines under the text areas

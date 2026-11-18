@@ -102,6 +102,11 @@ const en = {
   'setting.keepsOut.desc':
     'Code blocks, inline code, formulas, link targets, frontmatter, HTML tags and comments, and Templater expressions are left exactly as typed. Backspace straight after a substitution puts back what you typed.',
   'setting.folderStatus.name': 'Folders in use',
+  'setting.proHints.name': 'Show Pro tips',
+  'setting.proHints.desc': 'Now and then, one line about Typography Pro (paid) right where it would help, at most once every 14 days per place. Fixed text: no network, no tracking.',
+  'proHint.profile': 'Writing in more than one language? Typography Pro gives each folder or note its own typographic profile, with Spanish and French dialogue dashes, and fixes whole folders at once.',
+  'proHint.more': 'Learn more',
+  'proHint.off': "Don't show again",
   'setting.rulesStatus.name': 'Rules in use',
 
   // Status lines under the text areas

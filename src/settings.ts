@@ -7,6 +7,8 @@
  */
 
 import { t } from './i18n.ts';
+import { HINT_DEFAULTS } from './pro-hint.ts';
+import type { HintSettings } from './pro-hint.ts';
 
 export type QuoteStyleId =
   | 'off'
@@ -125,7 +127,7 @@ export const QUOTE_CONVENTIONS: QuoteConvention[] = [
   },
 ];
 
-export interface SmartTypographySettings {
+export interface SmartTypographySettings extends HintSettings {
   /** `off` leaves both quote characters alone. */
   quoteStyle: QuoteStyleId;
   /** `it's` -> `it’s`. Independent of `quoteStyle`. */
@@ -180,6 +182,8 @@ export const DEFAULT_SETTINGS: SmartTypographySettings = {
   useLangProperty: false,
   statusBar: true,
   presetPrompted: false,
+  ...HINT_DEFAULTS,
+  proHintShown: {},
 };
 
 /** The convention in use, or null when quote substitution is switched off. */
