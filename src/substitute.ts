@@ -11,6 +11,7 @@ import { customRulesFor, customTriggers, matchCustomRule } from './custom.ts';
 import type { CustomRule } from './custom.ts';
 import { capitalizeInsert, isLowercaseLetter, startsSentence, urlStart } from './capitalize.ts';
 import { RULES, matchRule } from './rules.ts';
+import { quoteDashRule } from './quote-dashes.ts';
 import type { RuleGroup } from './rules.ts';
 import { APOSTROPHE, conventionFor } from './settings.ts';
 import type { QuoteConvention, SmartTypographySettings } from './settings.ts';
@@ -135,7 +136,9 @@ function ruleCandidateFor(
     if (decade) return decade;
   }
 
-  const rule = matchRule(before, lineBefore, typed, (group) => groupEnabled(group, settings));
+  const rule =
+    matchRule(before, lineBefore, typed, (group) => groupEnabled(group, settings)) ??
+    quoteDashRule(lineBefore, typed, settings);
   if (!rule) return customAction(before, after, lineBefore, typed, settings);
 
   return {

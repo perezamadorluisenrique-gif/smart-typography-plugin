@@ -32,7 +32,9 @@ export function typographize(
   // Stepping over a closing quote is for a cursor with text after it; in a
   // replay the text after is the rest of the original, so every quote
   // would be swallowed.
-  const replay = { ...settings, skipClosingQuote: false };
+  // Dashes on a quote line of their own are for typing only: in text that is
+  // already there, `> ---` is far more likely a rule someone meant.
+  const replay = { ...settings, skipClosingQuote: false, dashesInQuotes: false };
   let out = before;
 
   for (let i = 0; i < text.length; i++) {
