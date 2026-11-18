@@ -4,7 +4,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import type { ButtonLike, SettingLike } from '../src/more-link.ts';
-import { moreDefinitions, morePicks, moreText, moreUrl, renderMore } from '../src/more-link.ts';
+import { moreDefinitions, morePicks, moreText, moreUrl, proPage, renderMore } from '../src/more-link.ts';
+
+const rows = (): number => morePicks().length + (proPage() ? 1 : 0);
 
 test('at most three picks, each with an id, name and short description', () => {
 	const picks = morePicks();
@@ -24,7 +26,7 @@ test('every link is an obsidian://show-plugin URL, never http(s)', () => {
 test('texts exist for every language and fall back to English', () => {
 	for (const lang of ['en', 'zh', 'ja', 'ko', 'es', 'de', 'fr', 'pt-BR', 'ru']) {
 		const t = moreText(lang);
-		assert.ok(t.heading && t.button);
+		assert.ok(t.heading && t.button && t.pro && t.proDesc);
 	}
 	assert.equal(moreText('es-MX').button, moreText('es').button);
 	assert.equal(moreText('xx').heading, moreText('en').heading);
@@ -44,7 +46,7 @@ test('renderMore draws a heading plus one row per pick, and nothing happens unti
 	}
 	renderMore({} as HTMLElement, () => new Row(), 'en');
 	assert.equal(calls.filter((c) => c === 'heading').length, morePicks().length ? 1 : 0);
-	assert.equal(calls.filter((c) => c.startsWith('button:')).length, morePicks().length);
+	assert.equal(calls.filter((c) => c.startsWith('button:')).length, morePicks().length ? rows() : 0);
 });
 
 test('moreDefinitions is one group with a searchable:false row per pick', () => {
@@ -53,7 +55,16 @@ test('moreDefinitions is one group with a searchable:false row per pick', () => 
 	assert.equal(defs.length, 1);
 	for (const group of defs) {
 		assert.equal(group.type, 'group');
-		assert.equal(group.items.length, morePicks().length);
+		assert.equal(group.items.length, rows());
 		assert.ok(group.items.every((i) => i.searchable === false));
 	}
+});
+
+test('the Pro row only links to the public Pro page over https, with a more- ref', () => {
+	assert.equal(proPage('https://perezamadorluisenrique-gif.github.io/pro/?ref=more-update-radar'), 'https://perezamadorluisenrique-gif.github.io/pro/?ref=more-update-radar');
+	assert.equal(proPage('https://perezamadorluisenrique-gif.github.io/pro/'), 'https://perezamadorluisenrique-gif.github.io/pro/');
+	for (const bad of ['http://perezamadorluisenrique-gif.github.io/pro/', 'https://example.com/pro/', 'https://perezamadorluisenrique-gif.github.io/pro/?ref=x&y=1', '']) {
+		assert.equal(proPage(bad), null, bad);
+	}
+	assert.equal(proPage(null), null);
 });

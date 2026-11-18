@@ -24,6 +24,7 @@ import { PRESETS, addPreset, customRulesFor } from './src/custom.ts';
 import type { Preset } from './src/custom.ts';
 import type { QuoteStyleId, SmartTypographySettings } from './src/settings.ts';
 import { conventionFor } from './src/settings.ts';
+import { cleanHintSettings, hintDue, hintUrl, hintsOff, markHintShown, renderHint } from './src/pro-hint.ts';
 import { ExtensionRegistry, resolvedDash, withResolvedQuotes } from './src/api.ts';
 import { t } from './src/i18n.ts';
 import { moreDefinitions, renderMore } from './src/more-link.ts';
@@ -246,7 +247,7 @@ export default class SmartTypographyPlugin extends Plugin {
     // No data.json at all means a first run. Anyone who has one, even from
     // before presets existed, already has settings and is never asked.
     this.showPresetPrompt = shouldPromptForPreset(stored);
-    this.settings = { ...DEFAULT_SETTINGS, ...stored };
+    this.settings = { ...DEFAULT_SETTINGS, ...stored, ...cleanHintSettings(stored) };
     if (!this.showPresetPrompt) this.settings.presetPrompted = true;
     if (typeof this.settings.customRules !== 'string') this.settings.customRules = '';
   }
@@ -505,7 +506,7 @@ function quoteStyleOptions(): Record<string, string> {
 }
 
 /** Which settings have a name and a description of their own in the locale files. */
-type TextKey = Exclude<keyof SmartTypographySettings, 'presetPrompted'>;
+type TextKey = Exclude<keyof SmartTypographySettings, 'presetPrompted' | 'proHintShown'>;
 
 /**
  * Each setting's name and description, written once. The declarative
@@ -572,6 +573,18 @@ class SmartTypographySettingTab extends PluginSettingTab {
         ...stylePresetText(),
         searchable: true,
         render: (setting: Setting) => this.stylePresetButtons(setting),
+      },
+      // The Pro tip's own row: empty and hidden until a convention is changed.
+      {
+        name: t('setting.proHints.name'),
+        searchable: false,
+        render: (setting: Setting) => {
+          this.tipHost = setting.settingEl;
+          this.drawProTip();
+          return () => {
+            this.tipHost = null;
+          };
+        },
       },
       ...TOGGLE_KEYS.map((key) => ({
         ...settingText(key),
@@ -640,8 +653,57 @@ class SmartTypographySettingTab extends PluginSettingTab {
       // No control: a row that is only an explanation, which also puts the
       // sentence in the settings search.
       keepsOutNote(),
+      {
+        ...settingText('proHints'),
+        control: { type: 'toggle' as const, key: 'proHints', defaultValue: DEFAULT_SETTINGS.proHints },
+      },
       ...(moreDefinitions() as SettingDefinitionItem[]),
     ];
+  }
+
+  /** The row that holds the Pro tip, while the tab is drawn. */
+  private tipHost: HTMLElement | null = null;
+
+  /** True once the tip was taken during this opening of the tab, so a redraw keeps it and a second change does not add one. */
+  private tipOpen = false;
+
+  /**
+   * Called right after the convention (quote style or style preset) was changed:
+   * takes the tip if it is due (at most once every 14 days) and draws it.
+   */
+  private offerProTip(): void {
+    const settings = this.plugin.settings;
+    if (!this.tipOpen && hintDue(settings, 'ty-profile')) {
+      Object.assign(settings, markHintShown(settings, 'ty-profile'));
+      this.tipOpen = true;
+      void this.plugin.saveSettings();
+    }
+    this.drawProTip();
+  }
+
+  private drawProTip(): void {
+    const host = this.tipHost;
+    if (!host) return;
+    host.empty();
+    if (!this.tipOpen || !this.plugin.settings.proHints) {
+      host.hide();
+      return;
+    }
+    host.show();
+    renderHint(
+      host,
+      { line: t('proHint.profile'), more: t('proHint.more'), off: t('proHint.off') },
+      hintUrl('typography', 'ty-profile'),
+      () => {
+        Object.assign(this.plugin.settings, hintsOff(this.plugin.settings));
+        this.tipOpen = false;
+        return this.plugin.saveSettings();
+      },
+    );
+  }
+
+  hide(): void {
+    this.tipOpen = false;
   }
 
   /** Where the custom rules' status is written, while the tab is open. */
@@ -707,6 +769,7 @@ class SmartTypographySettingTab extends PluginSettingTab {
   private async applyStyle(preset: StylePreset): Promise<void> {
     await this.plugin.applyStylePreset(preset);
     new Notice(t('notice.presetApplied', { preset: preset.label }));
+    this.offerProTip();
     if (this.legacy) {
       this.display();
       return;
@@ -754,6 +817,11 @@ class SmartTypographySettingTab extends PluginSettingTab {
     await this.plugin.saveSettings();
     if (key === 'customRules') this.showStatus();
     if (key === 'quotesByFolder') this.showFolderStatus();
+    if (key === 'quoteStyle') this.offerProTip();
+    if (key === 'proHints' && value === false) {
+      this.tipOpen = false;
+      this.drawProTip();
+    }
   }
 
   /**
@@ -777,12 +845,17 @@ class SmartTypographySettingTab extends PluginSettingTab {
         dropdown.onChange(async (value) => {
           this.plugin.settings.quoteStyle = value as QuoteStyleId;
           await this.plugin.saveSettings();
+          this.offerProTip();
         });
       });
 
     this.stylePresetButtons(
       new Setting(containerEl).setName(stylePresetText().name).setDesc(stylePresetText().desc),
     );
+
+    const tipRow = new Setting(containerEl).setName(t('setting.proHints.name'));
+    this.tipHost = tipRow.settingEl;
+    this.drawProTip();
 
     for (const key of TOGGLE_KEYS) this.addToggle(key);
 
@@ -836,10 +909,12 @@ class SmartTypographySettingTab extends PluginSettingTab {
       cls: 'setting-item-description',
     });
 
+    this.addToggle('proHints');
+
     renderMore(this.containerEl, (el) => new Setting(el));
   }
 
-  private addToggle(key: (typeof TOGGLE_KEYS)[number]): void {
+  private addToggle(key: (typeof TOGGLE_KEYS)[number] | 'proHints'): void {
     new Setting(this.containerEl)
       .setName(settingText(key).name)
       .setDesc(settingText(key).desc)
@@ -848,6 +923,10 @@ class SmartTypographySettingTab extends PluginSettingTab {
         toggle.onChange(async (value) => {
           this.plugin.settings[key] = value;
           await this.plugin.saveSettings();
+          if (key === 'proHints' && !value) {
+            this.tipOpen = false;
+            this.drawProTip();
+          }
         });
       });
   }

@@ -6,3 +6,6 @@ export const PICKS: readonly MorePick[] = [
 	{ id: "section-numbering", name: "Section Numbering", desc: "Number headings as an outline, links stay intact." },
 	{ id: "list-item-callouts", name: "List Item Callouts", desc: "Colour a list item as a callout." },
 ];
+
+/** The "Pro and templates" row of the settings block, or null for none. */
+export const PRO_PAGE: string | null = 'https://perezamadorluisenrique-gif.github.io/pro/?ref=more-typography-as-you-type';

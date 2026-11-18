@@ -98,6 +98,11 @@ const fr: Messages = {
   'setting.keepsOut.desc':
     'Les blocs de code, le code en ligne, les formules, les cibles de liens, le frontmatter, les balises et commentaires HTML et les expressions Templater restent exactement tels que saisis. Retour arrière juste après une substitution rétablit ce que vous avez saisi.',
   'setting.folderStatus.name': 'Dossiers utilisés',
+  'setting.proHints.name': 'Afficher les conseils Pro',
+  'setting.proHints.desc': 'De temps en temps, une ligne sur Typography Pro (payant) là où il serait utile, au plus une fois tous les 14 jours par endroit. Texte fixe : aucun réseau, aucun suivi.',
+  'proHint.profile': 'Vous écrivez en plusieurs langues ? Typography Pro donne à chaque dossier ou note son propre profil typographique, avec les tirets de dialogue espagnols et français, et corrige des dossiers entiers d’un coup.',
+  'proHint.more': 'En savoir plus',
+  'proHint.off': 'Ne plus afficher',
   'setting.rulesStatus.name': 'Règles utilisées',
 
   // Status lines under the text areas

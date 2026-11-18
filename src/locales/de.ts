@@ -97,6 +97,11 @@ const de: Messages = {
   'setting.keepsOut.desc':
     'Codeblöcke, Inline-Code, Formeln, Linkziele, Frontmatter, HTML-Tags und -Kommentare sowie Templater-Ausdrücke bleiben genau so, wie sie getippt wurden. Die Rücktaste direkt nach einer Ersetzung stellt das Getippte wieder her.',
   'setting.folderStatus.name': 'Verwendete Ordner',
+  'setting.proHints.name': 'Pro-Tipps anzeigen',
+  'setting.proHints.desc': 'Ab und zu eine Zeile über Typography Pro (kostenpflichtig) genau dort, wo es hilft, höchstens alle 14 Tage pro Stelle. Fester Text: kein Netzwerk, kein Tracking.',
+  'proHint.profile': 'Sie schreiben in mehr als einer Sprache? Typography Pro gibt jedem Ordner oder jeder Notiz ein eigenes typografisches Profil, mit spanischen und französischen Dialogstrichen, und korrigiert ganze Ordner auf einmal.',
+  'proHint.more': 'Mehr erfahren',
+  'proHint.off': 'Nicht mehr anzeigen',
   'setting.rulesStatus.name': 'Verwendete Regeln',
 
   // Status lines under the text areas

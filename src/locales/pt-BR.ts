@@ -95,6 +95,11 @@ const ptBR: Messages = {
   'setting.keepsOut.desc':
     'Blocos de código, código em linha, fórmulas, destinos de links, frontmatter, tags e comentários HTML e expressões do Templater ficam exatamente como digitados. Backspace logo após uma substituição devolve o que você digitou.',
   'setting.folderStatus.name': 'Pastas em uso',
+  'setting.proHints.name': 'Mostrar dicas do Pro',
+  'setting.proHints.desc': 'De vez em quando, uma linha sobre o Typography Pro (pago) bem onde ajudaria, no máximo uma vez a cada 14 dias por lugar. Texto fixo: sem rede, sem rastreamento.',
+  'proHint.profile': 'Escreve em mais de um idioma? O Typography Pro dá a cada pasta ou nota o seu próprio perfil tipográfico, com os travessões de diálogo do espanhol e do francês, e corrige pastas inteiras de uma vez.',
+  'proHint.more': 'Saiba mais',
+  'proHint.off': 'Não mostrar novamente',
   'setting.rulesStatus.name': 'Regras em uso',
 
   // Status lines under the text areas
