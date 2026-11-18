@@ -468,7 +468,7 @@ Browse, then search for the name. Demos and install links for every one:
 Optional paid extras, one-time payment. Everything in the free plugins stays free.
 
 - [Update Radar Pro](https://perezamadorluisenrique-gif.github.io/pro/update-radar/): A copy before every update, undo a whole update session, safe start after a broken update.
-- [Book Studio Pro](https://perezamadorluisenrique-gif.github.io/pro/book-studio/): More themes and trim sizes, hardcover, full cover and KDP preflight for Book Studio.
+- [Book Studio Pro](https://perezamadorluisenrique-gif.github.io/pro/book-studio/): Genre themes, a back-of-book index, box sets, several editions and a sales kit for Book Studio.
 - [Section Numbering Pro](https://perezamadorluisenrique-gif.github.io/pro/section-numbering/): Numbering profiles, cross-references, multi-note documents and Word export.
 - [Typography Pro](https://perezamadorluisenrique-gif.github.io/pro/typography/): Your own typography profiles and dialogue dashes for Typography as You Type.
 - [Text Case Pro](https://perezamadorluisenrique-gif.github.io/pro/text-case/): Vault-wide find and replace and per-folder recipes for Text Case.

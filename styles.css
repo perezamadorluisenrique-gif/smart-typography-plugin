@@ -18,4 +18,8 @@
 	display: flex;
 	gap: var(--size-4-2);
 }
+.notice .siulved-pro-hint {
+	color: inherit;
+	border-color: currentColor;
+}
 /* pro-hint:end */
