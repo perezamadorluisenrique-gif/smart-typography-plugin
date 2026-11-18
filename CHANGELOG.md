@@ -4,6 +4,12 @@ The release workflow uses the section named after the version being released
 as the release description, so every version needs one. `npm version <x.y.z>`
 renames the `Unreleased` heading below to that version.
 
+## 0.9.0
+
+- Option: a lone `--` or `---` on a quote or callout line, such as `>--` at the end of a quotation, becomes an en or em dash. Off by default; lines outside quotes, tables and front matter are unchanged (#37).
+- Status bar: the current note's quotation marks, with "off" when substitutions are off there; hover for why, click to turn the note on or off, set its quotation marks or apply typography. It can be hidden in the settings.
+- Right-click menu: Apply typography to the selection, when text is selected.
+
 ## 0.8.0
 
 - Settings: the first plugin suggested under "More plugins" is now Book Studio (a link you open yourself; nothing is shown or requested otherwise).

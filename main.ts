@@ -1,4 +1,4 @@
-import { App, FuzzySuggestModal, Modal, Notice, Plugin, PluginSettingTab, Setting, editorInfoField, getIcon } from 'obsidian';
+import { App, FuzzySuggestModal, Menu, Modal, Notice, Plugin, PluginSettingTab, Setting, editorInfoField, getIcon } from 'obsidian';
 import type { Editor, FileManager, SettingDefinitionItem, TFile } from 'obsidian';
 import { Prec, StateEffect, StateField } from '@codemirror/state';
 import type { Extension } from '@codemirror/state';
@@ -27,6 +27,8 @@ import { conventionFor } from './src/settings.ts';
 import { ExtensionRegistry, resolvedDash, withResolvedQuotes } from './src/api.ts';
 import { t } from './src/i18n.ts';
 import { moreDefinitions, renderMore } from './src/more-link.ts';
+import { noteStatus, statusText, statusTooltip } from './src/note-status.ts';
+import type { NoteStatus } from './src/note-status.ts';
 
 /**
  * How much text after the cursor the engine is shown. Only the
@@ -91,37 +93,7 @@ export default class SmartTypographyPlugin extends Plugin {
       id: 'toggle-note',
       name: t('command.toggleNote'),
       icon: 'toggle-right',
-      editorCallback: async (editor, ctx) => {
-        const text = editor.getValue();
-        const off = !noteIsOff(text);
-        // processFrontMatter (1.4.4) is the only edit Live Preview lets
-        // remove a property with; an editor change that deletes inside the
-        // front matter is dropped there. Older apps get the text edit.
-        // Looked up through a loose type so the review's API-version check
-        // accepts the fallback below for apps older than 1.4.4.
-        const fileManager = this.app.fileManager as { processFrontMatter?: FileManager['processFrontMatter'] };
-        if (ctx.file && typeof fileManager.processFrontMatter === 'function') {
-          await fileManager.processFrontMatter(ctx.file, (frontmatter: Record<string, unknown>) => {
-            if (off) frontmatter[NOTE_PROPERTY] = 'off';
-            else delete frontmatter[NOTE_PROPERTY];
-          });
-        } else {
-          const edit = setNoteOff(text, off);
-          if (edit) {
-            editor.transaction({
-              changes: [{ from: editor.offsetToPos(edit.from), to: editor.offsetToPos(edit.to), text: edit.insert }],
-            });
-          }
-        }
-        const folder = ctx.file && inFolder(ctx.file.path, folderList(this.settings.excludedFolders));
-        new Notice(
-          off
-            ? t('notice.substitutionsOff')
-            : folder
-              ? t('notice.removedButExcluded')
-              : t('notice.substitutionsOn'),
-        );
-      },
+      editorCallback: (editor, ctx) => this.toggleNote(editor, ctx.file),
     });
 
     this.addCommand({
@@ -139,38 +111,167 @@ export default class SmartTypographyPlugin extends Plugin {
       id: 'apply-to-text',
       name: t('command.applyToText'),
       icon: iconOr('wand-sparkles', 'wand-2'),
-      editorCallback: (editor, ctx) => {
-        const text = editor.getValue();
-        const ranges = editor.somethingSelected()
-          ? editor.listSelections().map((s) => {
-              const a = editor.posToOffset(s.anchor);
-              const b = editor.posToOffset(s.head);
-              return [Math.min(a, b), Math.max(a, b)];
-            })
-          : [[0, text.length]];
-        const changes: TextChange[] = [];
-        const settings = this.settingsFor(ctx.file);
-        for (const [from, to] of ranges) {
-          const original = text.slice(from, to);
-          const result = typographize(original, settings, text.slice(0, from));
-          changes.push(...changesBetween(original, result, from));
-        }
-        if (changes.length === 0) {
-          new Notice(t('notice.nothingToChange'));
-          return;
-        }
-        // One transaction, so a single undo puts everything back.
-        editor.transaction({
-          changes: changes.map((c) => ({ from: editor.offsetToPos(c.from), to: editor.offsetToPos(c.to), text: c.insert })),
-        });
-        new Notice(changes.length === 1 ? t('notice.changedLines.one') : t('notice.changedLines.other', { count: changes.length }));
-      },
+      editorCallback: (editor, ctx) => this.applyToText(editor, ctx.file),
     });
+
+    // Right-click on selected text: the same command, where the hand already is.
+    this.registerEvent(
+      this.app.workspace.on('editor-menu', (menu, editor, info) => {
+        if (!editor.somethingSelected()) return;
+        menu.addItem((item) =>
+          item
+            .setTitle(t('menu.applySelection'))
+            .setIcon(iconOr('wand-sparkles', 'wand-2'))
+            .onClick(() => this.applyToText(editor, info.file)),
+        );
+      }),
+    );
+
+    this.setUpStatusBar();
+  }
+
+  /** The status bar item: the note's quotation marks, "off" when it is left alone, and a menu on click. */
+  private statusBarEl: HTMLElement | null = null;
+
+  private setUpStatusBar(): void {
+    const el = this.addStatusBarItem();
+    el.addClass('mod-clickable', 'typography-as-you-type-status');
+    el.setAttribute('data-tooltip-position', 'top');
+    this.statusBarEl = el;
+    this.registerDomEvent(el, 'click', (event) => this.showStatusMenu(event));
+    const refresh = () => this.refreshStatusBar();
+    this.registerEvent(this.app.workspace.on('active-leaf-change', refresh));
+    this.registerEvent(this.app.workspace.on('file-open', refresh));
+    this.registerEvent(this.app.workspace.on('layout-change', refresh));
+    this.registerEvent(
+      this.app.metadataCache.on('changed', (file) => {
+        if (file === this.app.workspace.activeEditor?.file) refresh();
+      }),
+    );
+    this.app.workspace.onLayoutReady(refresh);
+  }
+
+  /** The status of the note in the active editor, or null when there is none. */
+  private activeStatus(): { status: NoteStatus; file: TFile; editor: Editor | undefined } | null {
+    const active = this.app.workspace.activeEditor;
+    const file = active?.file;
+    if (!file) return null;
+    const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
+    const status = noteStatus(
+      { path: file.path, typography: frontmatter?.[NOTE_PROPERTY], quotes: frontmatter?.[QUOTES_PROPERTY], lang: frontmatter?.[LANG_PROPERTY] },
+      this.settings,
+      this.api.quoteStyleFor({ path: file.path }),
+    );
+    return { status, file, editor: active.editor };
+  }
+
+  /** Redraws the status bar item; hidden when the setting is off or no note is open. */
+  refreshStatusBar(): void {
+    const el = this.statusBarEl;
+    if (!el) return;
+    const active = this.settings.statusBar ? this.activeStatus() : null;
+    el.toggle(active !== null);
+    if (!active) return;
+    el.setText(statusText(active.status));
+    el.setAttribute('aria-label', statusTooltip(active.status));
+  }
+
+  private showStatusMenu(event: MouseEvent): void {
+    const active = this.activeStatus();
+    if (!active) return;
+    const { status, file, editor } = active;
+    const menu = new Menu();
+    menu.addItem((item) => {
+      if (status.off === 'folder') {
+        item.setTitle(t('menu.excluded')).setIcon('folder-x').setDisabled(true);
+        return;
+      }
+      item
+        .setTitle(status.off ? t('menu.turnOn') : t('menu.turnOff'))
+        .setIcon(status.off ? 'toggle-left' : 'toggle-right')
+        .onClick(() => void this.toggleNote(editor, file));
+    });
+    menu.addItem((item) =>
+      item
+        .setTitle(t('command.setQuotes'))
+        .setIcon('quote')
+        .onClick(() => new QuotesModal(this.app, (choice) => void this.writeNoteQuotes(editor, file, choice)).open()),
+    );
+    if (editor) {
+      menu.addItem((item) =>
+        item
+          .setTitle(editor.somethingSelected() ? t('menu.applySelection') : t('menu.applyNote'))
+          .setIcon(iconOr('wand-sparkles', 'wand-2'))
+          .onClick(() => this.applyToText(editor, file)),
+      );
+    }
+    menu.showAtMouseEvent(event);
+  }
+
+  /** Turns the note's `typography: off` property on or off. */
+  private async toggleNote(editor: Editor | undefined, file: TFile | null): Promise<void> {
+    const text = editor ? editor.getValue() : file ? await this.app.vault.cachedRead(file) : '';
+    const off = !noteIsOff(text);
+    // processFrontMatter (1.4.4) is the only edit Live Preview lets
+    // remove a property with; an editor change that deletes inside the
+    // front matter is dropped there. Older apps get the text edit.
+    // Looked up through a loose type so the review's API-version check
+    // accepts the fallback below for apps older than 1.4.4.
+    const fileManager = this.app.fileManager as { processFrontMatter?: FileManager['processFrontMatter'] };
+    if (file && typeof fileManager.processFrontMatter === 'function') {
+      await fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
+        if (off) frontmatter[NOTE_PROPERTY] = 'off';
+        else delete frontmatter[NOTE_PROPERTY];
+      });
+    } else if (editor) {
+      const edit = setNoteOff(text, off);
+      if (edit) {
+        editor.transaction({
+          changes: [{ from: editor.offsetToPos(edit.from), to: editor.offsetToPos(edit.to), text: edit.insert }],
+        });
+      }
+    }
+    const folder = file && inFolder(file.path, folderList(this.settings.excludedFolders));
+    new Notice(
+      off
+        ? t('notice.substitutionsOff')
+        : folder
+          ? t('notice.removedButExcluded')
+          : t('notice.substitutionsOn'),
+    );
+  }
+
+  /** Typography for the selection, or the whole note when nothing is selected, as one undo step. */
+  private applyToText(editor: Editor, file: TFile | null): void {
+    const text = editor.getValue();
+    const ranges = editor.somethingSelected()
+      ? editor.listSelections().map((s) => {
+          const a = editor.posToOffset(s.anchor);
+          const b = editor.posToOffset(s.head);
+          return [Math.min(a, b), Math.max(a, b)];
+        })
+      : [[0, text.length]];
+    const changes: TextChange[] = [];
+    const settings = this.settingsFor(file);
+    for (const [from, to] of ranges) {
+      const original = text.slice(from, to);
+      const result = typographize(original, settings, text.slice(0, from));
+      changes.push(...changesBetween(original, result, from));
+    }
+    if (changes.length === 0) {
+      new Notice(t('notice.nothingToChange'));
+      return;
+    }
+    // One transaction, so a single undo puts everything back.
+    editor.transaction({
+      changes: changes.map((c) => ({ from: editor.offsetToPos(c.from), to: editor.offsetToPos(c.to), text: c.insert })),
+    });
+    new Notice(changes.length === 1 ? t('notice.changedLines.one') : t('notice.changedLines.other', { count: changes.length }));
   }
 
   /** Writes (or, for null, removes) the note's `typography-quotes` property. */
   private async writeNoteQuotes(
-    editor: Editor,
+    editor: Editor | undefined,
     file: TFile,
     choice: QuoteStyleId | null,
   ): Promise<void> {
@@ -182,7 +283,7 @@ export default class SmartTypographyPlugin extends Plugin {
         if (choice === null) delete frontmatter[QUOTES_PROPERTY];
         else frontmatter[QUOTES_PROPERTY] = choice;
       });
-    } else {
+    } else if (editor) {
       const edit = setNoteProperty(editor.getValue(), QUOTES_PROPERTY, choice);
       if (edit) {
         editor.transaction({
@@ -259,6 +360,7 @@ export default class SmartTypographyPlugin extends Plugin {
 
   async saveSettings() {
     await this.saveData(this.settings);
+    this.refreshStatusBar();
   }
 
   /**
@@ -533,6 +635,7 @@ const TOGGLE_KEYS = [
   'smartApostrophes',
   'skipClosingQuote',
   'dashes',
+  'dashesInQuotes',
   'ellipsis',
   'arrows',
   'mathSymbols',
@@ -540,6 +643,7 @@ const TOGGLE_KEYS = [
   'tabOut',
   'wrapSelection',
   'useLangProperty',
+  'statusBar',
 ] as const;
 
 /** The row with the style preset buttons. */

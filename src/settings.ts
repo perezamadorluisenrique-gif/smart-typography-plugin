@@ -132,6 +132,8 @@ export interface SmartTypographySettings {
   smartApostrophes: boolean;
   /** `--` -> en dash, `---` -> em dash. */
   dashes: boolean;
+  /** `>--` on a quote or callout line of its own becomes `>–` (and `>---` `>—`). Off by default. See `quote-dashes.ts`. */
+  dashesInQuotes: boolean;
   /** `...` -> `…`. */
   ellipsis: boolean;
   /** `->` `<-` `<->` `=>` and friends. */
@@ -154,6 +156,8 @@ export interface SmartTypographySettings {
   quotesByFolder: string;
   /** A note's `lang` property picks its quote convention when it has no `typography-quotes`. */
   useLangProperty: boolean;
+  /** The status bar item with the note's quotation marks and a menu. See `note-status.ts`. */
+  statusBar: boolean;
   /** Whether the first-run preset prompt has been shown (or was not needed). */
   presetPrompted: boolean;
 }
@@ -162,6 +166,7 @@ export const DEFAULT_SETTINGS: SmartTypographySettings = {
   quoteStyle: 'english',
   smartApostrophes: true,
   dashes: true,
+  dashesInQuotes: false,
   ellipsis: true,
   arrows: true,
   mathSymbols: true,
@@ -173,6 +178,7 @@ export const DEFAULT_SETTINGS: SmartTypographySettings = {
   wrapSelection: true,
   quotesByFolder: '',
   useLangProperty: false,
+  statusBar: true,
   presetPrompted: false,
 };
 
