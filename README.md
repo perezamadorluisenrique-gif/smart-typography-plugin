@@ -172,6 +172,31 @@ a horizontal rule, a setext underline and the frontmatter fence, and none of
 those is an em dash. So is the delimiter row of a table, `| --- | :-: |`,
 which would stop being one with a dash in it.
 
+### A dash on a quote line of its own
+
+If you end a quotation with a dash on its own last line, switch on **Lone
+dashes in quotes and callouts** (off by default). Then `>--` becomes `>–` and
+`>---` becomes `>—`, with or without a space after the `>`, in callouts and in
+nested quotes (`> >--`) too:
+
+```
+> Line before the dash
+>–
+```
+
+- Only a line that is nothing but quote markers and the hyphens changes. A
+  line of hyphens outside a quote is still a horizontal rule or a heading
+  underline, front matter stays as it is, and a table's delimiter row inside a
+  quote stays a table.
+- Inside a quote this gives up `> ---` as a horizontal rule and `> --` under a
+  line as a heading underline while you type. Backspace straight after the
+  dash puts the hyphens back, and `> ***` is a horizontal rule too.
+- *Apply typography* leaves these lines alone even with the option on, so the
+  rules already in your notes are not turned into dashes.
+- On phones it works with keyboards that send each character as it is typed.
+  A keyboard that composes `--` as part of a word leaves it as typed (see
+  [Input methods, dead keys and phones](#input-methods-dead-keys-and-phones)).
+
 [#39]: https://github.com/mgmeyers/obsidian-smart-typography/issues/39
 [#46]: https://github.com/mgmeyers/obsidian-smart-typography/issues/46
 [#62]: https://github.com/mgmeyers/obsidian-smart-typography/issues/62
@@ -189,6 +214,24 @@ so the result is exactly what you would have got by typing it: code, maths,
 links, front matter and HTML tags are left alone, your quotation style and the
 groups you switched off are respected, and text that is already typeset is not
 touched again. The change is one step in the undo history.
+
+## The status bar and the right-click menu
+
+The status bar shows the quotation marks the current note gets, such as `“ ”`
+or `„ “`, and adds `off` when nothing is substituted there. Hover over it to
+see why: the note's `typography-quotes` or `lang` property, Quotes per folder,
+another plugin, or your settings, and whether the note is off by its
+`typography: off` property or an excluded folder. That answers "why are my
+quotes not curling here?" without opening the settings.
+
+Click it for a menu: turn substitutions off or on in this note, set its
+quotation marks, and apply typography to the selection or the whole note.
+**Show in the status bar** in the settings hides it. Obsidian has no status
+bar on phones; the commands do the same there and can go on the mobile
+toolbar.
+
+With text selected, the editor's right-click menu has **Apply typography to
+the selection**, so a pasted paragraph is one click away from curly quotes.
 
 ## Different quotation marks for different notes
 
@@ -274,7 +317,9 @@ what you typed, turn Smart Punctuation off.
 - `src/` is pure logic with no imports from either: `context.ts` decides
   what is protected, `rules.ts` is the table of character substitutions,
   `custom.ts` compiles your own replacements into the same shape,
-  `substitute.ts` turns a keystroke into an editor change, `compose.ts`
+  `substitute.ts` turns a keystroke into an editor change,
+  `quote-dashes.ts` is the opt-in dash on a quote line of its own,
+  `note-status.ts` is what the status bar says, `compose.ts`
   curls the quotes a composition left behind, `revert.ts`
   decides whether Backspace should put something back, and `settings.ts`
   holds the conventions.
@@ -308,7 +353,7 @@ a rule reacts to, so keep them quick. With nothing registered, nothing changes.
 
 ## What is tested, and where
 
-The 130 tests cover the engine, not the editor. They type through
+The 234 tests cover the engine, not the editor. They type through
 `substitutionFor` one character at a time, which is how the chained rules
 get exercised.
 
